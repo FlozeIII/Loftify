@@ -57,6 +57,16 @@ jobs:
           flutter pub get
           dart run intl_utils:generate
 
+      # awesome_chewie ships its .arb files but its generated Dart output lands in
+      # lib/src/generated/, which .gitignore excludes. Flutter's incremental build
+      # normally generates it, but a stale build/ stamp committed into the repo
+      # makes it skip. Generate it explicitly so the build never depends on that.
+      - name: Generate awesome_chewie localizations
+        working-directory: third-party/chewie
+        run: |
+          flutter pub get
+          flutter gen-l10n
+
       # Get app version
       - name: Get app version
         id: get_version
