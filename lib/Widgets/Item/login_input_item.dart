@@ -141,6 +141,19 @@ class _LoginInputItemState extends State<LoginInputItem> {
     }
     if (child == null) return null;
     if (!isTrailing) return child;
+    final tapTarget = context.design.icons.minimumTapTarget;
+    // Icons and text want a guaranteed square tap target. An arbitrary widget
+    // must keep its own width: a square clamps it to 44px, and combined with
+    // BoxFit.cover that silently crops e.g. the photo captcha down to ~half.
+    final content = config.type == InputItemLeadingTailingType.widget
+        ? ConstrainedBox(
+            constraints: BoxConstraints(minHeight: tapTarget),
+            child: Center(child: child),
+          )
+        : SizedBox.square(
+            dimension: tapTarget,
+            child: Center(child: child),
+          );
     return Semantics(
       button: config.enable,
       child: GestureDetector(
@@ -155,10 +168,7 @@ class _LoginInputItemState extends State<LoginInputItem> {
           cursor: config.enable
               ? SystemMouseCursors.click
               : SystemMouseCursors.basic,
-          child: SizedBox.square(
-            dimension: context.design.icons.minimumTapTarget,
-            child: Center(child: child),
-          ),
+          child: content,
         ),
       ),
     );
