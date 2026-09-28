@@ -146,9 +146,17 @@ class _LoginInputItemState extends State<LoginInputItem> {
     // must keep its own width: a square clamps it to 44px, and combined with
     // BoxFit.cover that silently crops e.g. the photo captcha down to ~half.
     final content = config.type == InputItemLeadingTailingType.widget
+        // widthFactor/heightFactor make Center shrink-wrap the child. A bare
+        // Center expands to fill the width it is given, which stretched the
+        // tail across the whole field, parked the captcha in the middle and
+        // squeezed the editable area down to nothing.
         ? ConstrainedBox(
             constraints: BoxConstraints(minHeight: tapTarget),
-            child: Center(child: child),
+            child: Center(
+              widthFactor: 1.0,
+              heightFactor: 1.0,
+              child: child,
+            ),
           )
         : SizedBox.square(
             dimension: tapTarget,
