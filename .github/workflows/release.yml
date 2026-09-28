@@ -34,8 +34,12 @@ jobs:
       date: ${{ steps.get_version.outputs.date}}
     runs-on: ${{ matrix.os }}
     env:
-      # Bumped from 3.27.3 (Dart 3.6.1) -> Dart 3.11+ is required by pubspec.lock
-      FLUTTER_VERSION: 3.47.5
+      # 3.27.3 ships Dart 3.6.1, but pubspec.lock needs Dart >=3.11.0 / Flutter
+      # >=3.41.0, so `flutter pub get` could never succeed.
+      # 3.41.5 is the newest stable predating flutter/flutter#181345 (2026-03-24),
+      # which marks IconData `final` -- the vendored
+      # third-party/widget/lucide_icons extends it, so newer SDKs fail to compile.
+      FLUTTER_VERSION: 3.41.5
     steps:
       # Checkout branch
       - name: Checkout
