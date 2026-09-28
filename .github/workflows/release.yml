@@ -24,7 +24,13 @@ jobs:
       matrix:
         include:
           - target: Windows
-            os: windows-latest
+            # Not windows-latest: that now resolves to a VS 2026 image (MSVC
+            # 14.51), whose STL turns <experimental/coroutine> into a hard error.
+            # Several Windows plugins used by this app (flutter_inappwebview_
+            # windows, local_auth_windows, permission_handler_windows) still
+            # include it. windows-2022 carries the VS 2022 toolchain that
+            # Flutter 3.41.5 was built against.
+            os: windows-2022
             artifact_name: release-Windows
             artifact_path: |
               build/windows/outputs/*.zip
