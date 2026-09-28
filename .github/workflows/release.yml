@@ -13,16 +13,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: true
 
+# Required for softprops/action-gh-release to attach artifacts to a Release
+permissions:
+  contents: write
+
 jobs:
   Build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: Android
-            os: ubuntu-latest
-            artifact_name: release-Android
-            artifact_path: build/app/outputs/flutter-apk/*.apk
           - target: Windows
             os: windows-latest
             artifact_name: release-Windows
@@ -34,18 +34,12 @@ jobs:
       date: ${{ steps.get_version.outputs.date}}
     runs-on: ${{ matrix.os }}
     env:
-      FLUTTER_VERSION: 3.27.3
+      # Bumped from 3.27.3 (Dart 3.6.1) -> Dart 3.11+ is required by pubspec.lock
+      FLUTTER_VERSION: 3.47.5
     steps:
       # Checkout branch
       - name: Checkout
         uses: actions/checkout@v4
-
-      # Add Android keystore
-      - name: Setup Android keystore
-        if: matrix.target == 'Android'
-        run: |
-          echo "${{ secrets.ENCODED_KEYSTORE }}" | base64 -di > android/app/cloudchewie.jks
-          echo "${{ secrets.KEY_PROPERTIES }}" > android/key.properties
 
       # Setup Flutter
       - name: Setup Flutter
@@ -54,15 +48,6 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: 'stable'
           cache: true
-
-      # Setup JDK
-      - name: Setup JDK 17 (Android)
-        if: matrix.target == 'Android'
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: gradle
 
       # Flutter Pub Get
       - name: Flutter Pub Get
@@ -80,38 +65,33 @@ jobs:
           echo "version=$(head -n 2 pubspec.yaml | tail -n 1 | cut -d ' ' -f 2 | cut -d '+' -f 1)" >> $GITHUB_OUTPUT
           echo "date=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
 
-      # Build Android .apk
-      - name: Build Android
-        if: matrix.target == 'Android'
-        run: |
-          flutter build apk --release
-          flutter build apk --release --split-per-abi
-          cd build/app/outputs/flutter-apk
-          mv app-release.apk Loftify-${{ steps.get_version.outputs.version }}-android-universal.apk
-          mv app-arm64-v8a-release.apk Loftify-${{ steps.get_version.outputs.version }}-android-arm64-v8a.apk
-          mv app-armeabi-v7a-release.apk Loftify-${{ steps.get_version.outputs.version }}-android-armeabi-v7a.apk
-          mv app-x86_64-release.apk Loftify-${{ steps.get_version.outputs.version }}-android-x86_64.apk
-
       # Build Windows .zip
       - name: Build Windows
-        if: matrix.target == 'Windows'
         run: |
           flutter build windows --release
           $DestDir = "build\windows\outputs\Loftify-${{ steps.get_version.outputs.version }}-windows-x86_64"
           $SrcDir = "build\windows\x64\runner\Release"
           $dllDir = "tools\windows_dll"
-          
+
           Copy-Item -Filter *.dll -Path $dllDir\* -Destination $SrcDir -Force
+
+          # Fail loudly instead of shipping a package that renders a blank window.
+          # See: tools/windows_dll/sqlite3.dll must be present for sqflite_common_ffi.
+          if (-not (Test-Path "$SrcDir\sqlite3.dll")) {
+            Write-Error "sqlite3.dll is missing from $SrcDir - the packaged app would start but never render. Check tools/windows_dll/."
+            exit 1
+          }
+
           New-Item -Path $DestDir -ItemType Directory
           Copy-Item $SrcDir\* -Recurse $DestDir
-          
+
           Compress-Archive $DestDir build\windows\outputs\Loftify-${{ steps.get_version.outputs.version }}-windows-x86_64.zip
-          
+
           (Get-Content tools/windows_tools/Loftify.iss) -replace '#define MyAppVersion ".*"', '#define MyAppVersion "${{ steps.get_version.outputs.version }}"' | Set-Content tools/windows_tools/Loftify.iss
 
-      # Build Windows .exe
+      # Build Windows .exe (installer). Non-blocking: the portable .zip is the primary artifact.
       - name: Build Windows Installer
-        if: matrix.target == 'Windows'
+        continue-on-error: true
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.6
         with:
           path: tools/windows_tools/Loftify.iss
@@ -122,6 +102,7 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: ${{ matrix.artifact_path }}
+          if-no-files-found: ignore
 
   Publish:
     if: startsWith(github.ref, 'refs/tags/')
@@ -131,24 +112,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Get app version
         id: get_version
         shell: bash
         run: |
           echo "version=$(head -n 2 pubspec.yaml | tail -n 1 | cut -d ' ' -f 2 | cut -d '+' -f 1)" >> $GITHUB_OUTPUT
+
       - name: Make tmp dir
         run: mkdir /tmp/artifacts
+
       - name: Download all Artifacts
         uses: actions/download-artifact@v4
         with:
           path: /tmp/artifacts
+
       - name: List and move all Artifacts
         run: |
           mkdir -p /tmp/artifacts/final
-          mv /tmp/artifacts/release-Android/*.apk /tmp/artifacts/final/
-          mv /tmp/artifacts/release-Windows/*.zip /tmp/artifacts/final/
-          mv /tmp/artifacts/release-Windows/*.exe /tmp/artifacts/final/
-
+          # Only the Windows leg exists in this fork.
+          cp -r /tmp/artifacts/release-Windows/. /tmp/artifacts/final/
           cd /tmp/artifacts/final
           for file in *; do
             if [ -f "$file" ]; then
@@ -157,24 +140,10 @@ jobs:
           done
           ls -R /tmp/artifacts/final
 
-      - name: Upload to S3
-        uses: Robert-Stackflow/upload-s3-action@master
-        with:
-          endpoint: ${{ secrets.AWS_ENDPOINT }}
-          aws_key_id: ${{ secrets.AWS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
-          aws_bucket: ${{ secrets.AWS_BUCKET }}
-          source_dir: /tmp/artifacts/final
-          destination_dir: Loftify/${{ steps.get_version.outputs.version }}
+      # Was Robert-Stackflow/release-action + an S3 upload that needs secrets this fork does not have.
       - name: Upload to release
-        uses: Robert-Stackflow/release-action@master
+        uses: softprops/action-gh-release@v2
         with:
-          tag: ${{ github.ref_name }}
-          allowUpdates: true
-          generateReleaseNotes: true
-          artifacts: /tmp/artifacts/final/*
-          artifactErrorsFailBuild: true
-          replacesArtifacts: true
-          makeLatest: true
+          files: /tmp/artifacts/final/*
+          generate_release_notes: true
           draft: true
-          updateOnlyUnreleased: true

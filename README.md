@@ -1,5 +1,9 @@
 # Loftify
 
+> **Community fork**, maintained by [@FlozeIII](https://github.com/FlozeIII).
+> Based on the `dev/redesign` branch of [Robert-Stackflow/Loftify](https://github.com/Robert-Stackflow/Loftify) (MIT).
+> This fork fixes the packaging bug that makes the upstream Windows build render a blank window, and publishes its own builds.
+
 A LOFTER third-party APP developed based on Flutter.
 
 # Features
