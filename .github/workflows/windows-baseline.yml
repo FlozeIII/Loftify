@@ -1,0 +1,137 @@
+name: Windows Baseline
+
+on:
+  push:
+    branches: [dev/redesign, self/first-windows]
+    paths:
+      - '.github/workflows/windows-baseline.yml'
+      - 'lib/**'
+      - 'test/**'
+      - 'third-party/**'
+      - 'tools/**'
+      - 'windows/**'
+      - 'assets/**'
+      - 'pubspec.*'
+      - 'l10n.yaml'
+      - 'analysis_options.yaml'
+  pull_request:
+    branches: [dev/redesign, self/first-windows]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    runs-on: windows-2022
+    env:
+      FLUTTER_VERSION: 3.41.5
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+      - uses: subosito/flutter-action@v2.21.0
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Generate app localizations
+        run: |
+          flutter pub get
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dart run intl_utils:generate
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          flutter gen-l10n
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Generate awesome_chewie localizations
+        working-directory: third-party/chewie
+        run: |
+          flutter pub get
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          flutter gen-l10n
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Analyze login and regression tests
+        run: |
+          flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib/Widgets/Item/login_input_item.dart lib/Widgets/Login/loftify_login_layout.dart lib/Screens/Login/login_by_captcha_screen.dart test/widgets/general/login_input_item_test.dart test/widgets/login/loftify_login_layout_test.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Prove captcha regression test rejects both broken layouts
+        run: |
+          $path = 'lib/Widgets/Item/login_input_item.dart'
+          $fixed = [IO.File]::ReadAllText($path)
+          try {
+            foreach ($revision in @('58bdea904e03562b67c92b9b7ccc70d6986332ab', 'a9d7d4995bcceacc892d73fb8c8c80f5188b4eb2')) {
+              git fetch --depth=1 origin $revision
+              if ($LASTEXITCODE -ne 0) { throw 'Cannot load historical regression revision' }
+              $broken = git show "${revision}:$path"
+              if ($LASTEXITCODE -ne 0) { throw 'Cannot read historical login layout' }
+              [IO.File]::WriteAllText($path, ($broken -join "`n"))
+              flutter test --no-pub test/widgets/general/login_input_item_test.dart --plain-name 'captcha tail stays readable while the user enters and refreshes it' *> regression.log
+              if ($LASTEXITCODE -eq 0) { throw "Regression test incorrectly passed on $revision" }
+              if (-not (Select-String -LiteralPath regression.log -Pattern 'Expected:|overflowed' -Quiet)) {
+                Get-Content -LiteralPath regression.log
+                throw 'Test failed before reaching a behavioral assertion'
+              }
+              Write-Output "Expected behavioral failure observed for $revision"
+            }
+          } finally {
+            [IO.File]::WriteAllText($path, $fixed)
+          }
+          $global:LASTEXITCODE = 0
+      - name: Prove heading regression test rejects the old alignment
+        run: |
+          $path = 'lib/Widgets/Login/loftify_login_layout.dart'
+          $fixed = [IO.File]::ReadAllText($path)
+          try {
+            $broken = git show "58bdea904e03562b67c92b9b7ccc70d6986332ab:$path"
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot read historical heading layout' }
+            [IO.File]::WriteAllText($path, ($broken -join "`n"))
+            flutter test --no-pub test/widgets/login/loftify_login_layout_test.dart --plain-name 'alternative login heading is centered in the form' *> regression.log
+            if ($LASTEXITCODE -eq 0) { throw 'Regression test incorrectly passed on the old alignment' }
+            if (-not (Select-String -LiteralPath regression.log -Pattern 'Expected:' -Quiet)) {
+              Get-Content -LiteralPath regression.log
+              throw 'Test failed before reaching the alignment assertion'
+            }
+            Write-Output 'Expected behavioral failure observed for the old heading'
+          } finally {
+            [IO.File]::WriteAllText($path, $fixed)
+          }
+          $global:LASTEXITCODE = 0
+      - name: Test fixed login interactions
+        run: |
+          flutter test --no-pub test/widgets/general/login_input_item_test.dart test/widgets/login/loftify_login_layout_test.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test portable packaging contract
+        run: ./tools/windows_tools/test_portable_package.ps1
+      - name: Run full test suite
+        run: |
+          flutter test --no-pub
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Windows portable ZIP
+        run: |
+          flutter build windows --release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $versionLine = Select-String -LiteralPath pubspec.yaml -Pattern '^version:\s*(\S+)'
+          $version = $versionLine.Matches[0].Groups[1].Value.Split('+')[0]
+          ./tools/windows_tools/package_portable.ps1 -Version $version -SourceCommit $env:GITHUB_SHA -FlutterVersion $env:FLUTTER_VERSION
+      - name: Upload baseline artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-baseline-${{ github.sha }}
+          path: |
+            build/windows/outputs/*.zip
+            build/windows/outputs/*.sha256
+          if-no-files-found: error
+      - name: Upload regression diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-diagnostics-${{ github.sha }}
+          path: regression.log
+          if-no-files-found: ignore

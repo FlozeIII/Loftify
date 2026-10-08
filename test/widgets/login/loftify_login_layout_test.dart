@@ -6,6 +6,34 @@ import 'package:loftify/Widgets/Login/loftify_login_layout.dart';
 import 'package:loftify/Widgets/loftify_icons.dart';
 
 void main() {
+  testWidgets('alternative login heading is centered in the form',
+      (tester) async {
+    await tester.pumpWidget(
+      _host(
+        size: const Size(1000, 700),
+        child: LoftifyLoginLayout(
+          formChildren: const [TextField()],
+          primaryAction: const SizedBox(height: 48),
+          alternativeTitle: 'Other methods',
+          alternativeMethods: [
+            LoftifyLoginMethod(
+              label: 'Password login',
+              icon: LoftifyIcons.password,
+              onPressed: _noop,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final headingCenter = tester.getCenter(find.text('Other methods'));
+    final formCenter = tester.getCenter(
+      find.byKey(const ValueKey('loftify-login-alternatives')),
+    );
+    expect(headingCenter.dx, closeTo(formCenter.dx, 0.5));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('short large-text phone keeps every login action scrollable',
       (tester) async {
     var primaryTaps = 0;

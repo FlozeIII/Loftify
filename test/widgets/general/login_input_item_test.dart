@@ -5,6 +5,45 @@ import 'package:loftify/Widgets/Item/login_input_item.dart';
 import 'package:loftify/Widgets/loftify_icons.dart';
 
 void main() {
+  testWidgets('captcha tail stays readable while the user enters and refreshes it',
+      (tester) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    var refreshes = 0;
+    const captchaKey = ValueKey('test-photo-captcha');
+
+    await tester.pumpWidget(
+      _host(
+        LoginInputItem(
+          controller: controller,
+          tailingConfig: InputItemLeadingTailingConfig(
+            type: InputItemLeadingTailingType.widget,
+            widget: GestureDetector(
+              onTap: () => refreshes++,
+              child: const SizedBox(
+                key: captchaKey,
+                width: 86,
+                height: 40,
+                child: ColoredBox(color: Colors.teal),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byKey(captchaKey)).width, 86);
+    final editable = find.byType(EditableText);
+    expect(tester.getSize(editable).width, greaterThan(100));
+    await tester.tap(editable);
+    await tester.enterText(editable, '123456');
+    expect(controller.text, '123456');
+    await tester.tap(find.byKey(captchaKey));
+    expect(refreshes, 1);
+    expect(controller.text, '123456');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('login clear action uses Lucide and a 48px touch target',
       (tester) async {
     final controller = TextEditingController(text: 'content');
