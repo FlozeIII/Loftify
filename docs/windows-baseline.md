@@ -28,9 +28,25 @@
 ## 执行记录
 
 - 本地便携打包契约：通过。
-- GitHub Actions：待本次推送后记录。
+- GitHub Actions：[本次基线检查与构建](https://github.com/FlozeIII/Loftify/actions/runs/37792991445)，源码 `c9e79380cad1b5d2e9d3c11e5ceb9f4c1702b8e2`。本地化、静态检查、历史错误布局敏感度、7 项登录交互测试、106 项针对性测试、810 项全套测试、4 项打包契约测试、Windows 编译和产物上传均已通过。测试组有重叠，不将数量累加为独立用例总数。
 - 实际环境：Windows 11 x64，系统构建 26200。
-- 本次产物启动和操作：待下载后记录。
-- 两轴代码审查：待记录。
+- Actions artifact：`windows-baseline-c9e79380cad1b5d2e9d3c11e5ceb9f4c1702b8e2`，artifact ID `11557478934`。
+- ZIP：`Loftify-2.5.3-windows-x86_64.zip`，24,837,868 字节。
+- SHA256：`a82719e557a4dcd3a8a0293a7fa9f99bb07161537e7bbb77f5e1c877569487ab`；下载后计算值与 Actions sidecar 完全一致。
+- 包内 BUILD-PROVENANCE.json 已核对源码 SHA、Flutter 3.41.5 与 x86_64；SQLite、Flutter 和 VC++ DLL 已确认存在。
+- 本次启动路径：`D:\dev\Loftify\.scratch\windows-baseline\runtime-c9e7938\Loftify-2.5.3-windows-x86_64\Loftify.exe`。在新的独立目录启动后，系统返回 PID `19720`、窗口标题 `Loftify`，运行进程路径与该产物一致。这里只确认启动进程，不能据此判定窗口内容和交互合格。
+- 窗口操作验收尚未完成：Computer Use 返回 `Computer Use was not approved to use Loftify`。等待工具访问授权或用户手动验收反馈；Issue #2 保持未完成，不以 CI 或进程启动替代验收。
+- Standards：两次提交后复查，未发现文档规范违例或不合理放宽测试。历史回放步骤和既有 Release 打包路径存在可合并的重复；属于后续扩展时可处理的判断项，不要求本任务引入抽象。
+- Spec：未发现实现错误或新增范围。测试环境及旧断言修正符合最小前置整理要求；产物来源、校验与实际操作结果在验收完成前仍属未完成项。
 
 本任务不变更 Community 独立身份、数据迁移、更新源或本地功能配置；这些由后续任务负责。
+
+## 本次产物的手动验收
+
+使用上面的独立目录程序；下列各项仍需实际操作确认。
+
+- [ ] 主窗口正常显示、可操作。
+- [ ] 验证码登录页的图片完整显示，点击图片能够刷新。
+- [ ] 图形验证码输入框能够输入任意测试文字；刷新图片后仍可输入。不需提交登录或发送短信。
+- [ ] “其他登录方式”标题位于表单水平中心。
+- [ ] 密码和 LOFTER ID/邮箱入口能打开，输入框布局与操作正常。
