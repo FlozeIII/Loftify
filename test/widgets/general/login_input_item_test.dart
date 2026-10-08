@@ -44,7 +44,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('login clear action uses Lucide and a 48px touch target',
+  testWidgets('login clear action is clickable beyond the icon bounds',
       (tester) async {
     final controller = TextEditingController(text: 'content');
     addTearDown(controller.dispose);
@@ -62,16 +62,8 @@ void main() {
 
     final icon = find.byIcon(LoftifyIcons.clear);
     expect(icon, findsOneWidget);
-    final touchTarget = find.ancestor(
-      of: icon,
-      matching: find.byWidgetPredicate(
-        (widget) =>
-            widget is SizedBox && widget.width == 48 && widget.height == 48,
-      ),
-    );
-    expect(touchTarget, findsOneWidget);
-
-    await tester.tap(icon);
+    // Exercise the edge of the documented 44px target, outside the 20px icon.
+    await tester.tapAt(tester.getCenter(icon) + const Offset(21, 0));
     expect(controller.text, isEmpty);
   });
 
