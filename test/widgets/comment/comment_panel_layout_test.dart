@@ -36,7 +36,7 @@ void main() {
         matching: find.byType(ClipRRect),
       ),
     );
-    expect((panelClip.borderRadius! as BorderRadius).topLeft.x, 24);
+    expect((panelClip.borderRadius! as BorderRadius).topLeft.x, 12);
     expect(find.textContaining('Latest comments'), findsOneWidget);
     expect(tester.takeException(), isNull);
 

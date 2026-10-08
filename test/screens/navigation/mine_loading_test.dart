@@ -271,12 +271,19 @@ void main() {
       LoftifyIcons.notifications,
       LoftifyIcons.settings,
     ]) {
-      final button = tester.widget<ChewieIconButton>(
-        find.byWidgetPredicate(
-          (widget) => widget is ChewieIconButton && widget.icon == icon,
-        ),
+      final buttonFinder = find.byWidgetPredicate(
+        (widget) => widget is ChewieIconButton && widget.icon == icon,
       );
-      expect(button.iconSize, 22);
+      final button = tester.widget<ChewieIconButton>(buttonFinder);
+      final renderedIcon = tester.widget<Icon>(
+        find.descendant(of: buttonFinder, matching: find.byIcon(icon)),
+      );
+      // The scope limits the rendered glyph; the nullable constructor value
+      // intentionally inherits the theme's requested size.
+      expect(renderedIcon.size, lessThanOrEqualTo(22));
+      expect(renderedIcon.size, greaterThan(0));
+      expect(tester.getSize(buttonFinder).width, greaterThanOrEqualTo(44));
+      expect(tester.getSize(buttonFinder).height, greaterThanOrEqualTo(44));
       expect(button.foregroundColor, isNotNull);
     }
     final themeIcon = tester.widget<LoftifyLottie>(

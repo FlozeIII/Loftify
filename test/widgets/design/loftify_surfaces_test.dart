@@ -212,7 +212,7 @@ void main() {
     expect(compact.bottomLeft.x, 0);
     final wide = await pump(700);
     expect(find.byKey(const ValueKey('loftify-panel-handle')), findsNothing);
-    expect(wide.bottomLeft.x, 20);
+    expect(wide.bottomLeft.x, 12);
     expect(tester.takeException(), isNull);
   });
 

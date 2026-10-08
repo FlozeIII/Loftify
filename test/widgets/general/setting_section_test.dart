@@ -56,8 +56,10 @@ void main() {
       BaseSettingScreen.sectionTopMargin,
     );
     expect(firstMaterial.borderRadius, BorderRadius.circular(14));
-    expect(firstTitle.style?.fontSize, 16);
-    expect(firstTitle.style?.fontWeight, FontWeight.w600);
+    final captionStyle = Theme.of(tester.element(find.text('General')))
+        .textTheme.labelMedium!;
+    expect(firstTitle.style?.fontSize, captionStyle.fontSize);
+    expect(firstTitle.style?.fontWeight, captionStyle.fontWeight);
     expect(
       find.descendant(
         of: captions.first,

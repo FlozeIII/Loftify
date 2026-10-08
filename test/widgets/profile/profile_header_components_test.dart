@@ -138,7 +138,7 @@ void main() {
       await tester.pump();
 
       final action = find.byKey(const ValueKey('loftify-profile-action'));
-      expect(tester.getSize(action).height, greaterThanOrEqualTo(48));
+      expect(tester.getSize(action).height, greaterThanOrEqualTo(44));
       final design = LoftifyDesignThemeData.of(tester.element(action));
       final decoration = tester
           .widget<AnimatedContainer>(

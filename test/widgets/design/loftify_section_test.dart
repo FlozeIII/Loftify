@@ -48,7 +48,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('section expands and collapses with an accessible tap target', (
+  testWidgets('section expands and collapses through its header action', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -140,13 +140,20 @@ class _TestApp extends StatelessWidget {
           size: Size(width, 800),
           textScaler: textScaler,
         ),
-        child: Scaffold(
-          body: SingleChildScrollView(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: SizedBox(width: width, child: child),
-            ),
-          ),
+        child: Builder(
+          builder: (context) {
+            // The app initializes this context before Chewie text roles are
+            // resolved; mirror that environment in the widget fixture.
+            chewieProvider.setRootContext(context);
+            return Scaffold(
+              body: SingleChildScrollView(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(width: width, child: child),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

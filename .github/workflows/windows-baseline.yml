@@ -59,7 +59,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Analyze login and regression tests
         run: |
-          flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib/Widgets/Item/login_input_item.dart lib/Widgets/Login/loftify_login_layout.dart lib/Screens/Login/login_by_captcha_screen.dart test/widgets/general/login_input_item_test.dart test/widgets/login/loftify_login_layout_test.dart
+          flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib/Widgets/Item/login_input_item.dart lib/Widgets/Login/loftify_login_layout.dart lib/Screens/Login/login_by_captcha_screen.dart test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Prove captcha regression test rejects both broken layouts
         run: |
@@ -109,6 +109,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test portable packaging contract
         run: ./tools/windows_tools/test_portable_package.ps1
+      - name: Test repaired baseline fixtures and design expectations
+        run: |
+          flutter test --no-pub test/screens/navigation/mine_loading_test.dart test/theme/loftify_design_theme_test.dart test/widgets/comment/comment_panel_layout_test.dart test/widgets/design/loftify_controls_test.dart test/widgets/design/loftify_section_test.dart test/widgets/design/loftify_surfaces_test.dart test/widgets/general/app_bar_wrapper_test.dart test/widgets/general/icon_state_policy_test.dart test/widgets/general/setting_section_test.dart test/widgets/info/user_relation_controls_test.dart test/widgets/profile/profile_header_components_test.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run full test suite
         run: |
           flutter test --no-pub

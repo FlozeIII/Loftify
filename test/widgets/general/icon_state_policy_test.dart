@@ -175,9 +175,11 @@ void main() {
     final source = File(
       'lib/Widgets/Item/loftify_item_builder.dart',
     ).readAsStringSync();
-    expect(source, contains('ChewieIcon(\n            LoftifyIcons.favorite,'));
+    expect(RegExp(r'ChewieIcon\(\s*LoftifyIcons\.favorite,').hasMatch(source),
+        isTrue);
     expect(
-        source, contains('ChewieIcon(\n            LoftifyIcons.recommend,'));
+        RegExp(r'ChewieIcon\(\s*LoftifyIcons\.recommend,').hasMatch(source),
+        isTrue);
   });
 
   test('business bottom sheets use semantic Lucide icons', () {
@@ -203,8 +205,12 @@ void main() {
     final subscribeSource = File(
       'lib/Widgets/BottomSheet/subscribe_post_bottom_sheet.dart',
     ).readAsStringSync();
-    expect(RegExp(r'icon:\s*LoftifyIcons\.select').allMatches(subscribeSource),
-        hasLength(1));
+    expect(
+      RegExp(r'icon:\s*item\.postSubscribed == 1\s*'
+              r'\?\s*LoftifyIcons\.check\s*:\s*LoftifyIcons\.select,')
+          .allMatches(subscribeSource),
+      hasLength(1),
+    );
   });
 
   test('content management menus use semantic Lucide icons', () {

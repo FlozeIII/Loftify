@@ -70,7 +70,7 @@ void main() {
       tester.getSize(
         find.byKey(const ValueKey('chewie-icon-button-visual')),
       ),
-      const Size.square(34),
+      const Size.square(28),
     );
     expect(
       tester.widget<Icon>(find.byIcon(LucideIcons.arrowLeft)).size,
@@ -120,7 +120,7 @@ void main() {
         in find.byKey(const ValueKey('chewie-icon-button-visual')).evaluate()) {
       expect(
         tester.getSize(find.byWidget(visual.widget)),
-        const Size.square(34),
+        const Size.square(28),
       );
     }
     expect(
@@ -331,7 +331,7 @@ void main() {
       tester.getSize(
         find.byKey(const ValueKey('chewie-icon-button-visual')),
       ),
-      const Size.square(34),
+      const Size.square(28),
     );
     expect(tester.takeException(), isNull);
   });

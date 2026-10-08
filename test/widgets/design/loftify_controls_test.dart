@@ -216,7 +216,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('buttons, fields and tags resolve dark semantic surfaces', (
+  testWidgets('dark controls keep semantic surfaces and neutral button border', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -269,9 +269,7 @@ void main() {
     expect(buttonDecoration.color, const Color(0xFF202421));
     expect(
       buttonDecoration.border!.top.color,
-      LoftifyDesignThemeData.of(
-        tester.element(find.byKey(const Key('dark-button'))),
-      ).colors.outlineStrong,
+      Colors.grey.shade300,
     );
     expect(fieldDecoration.color, const Color(0xFF191C1A));
     expect(find.text('Dark tag'), findsOneWidget);

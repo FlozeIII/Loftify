@@ -48,7 +48,7 @@ void main() {
     expect(taps, 1);
   });
 
-  test('following cards and controls use responsive design components', () {
+  test('following rows and controls use responsive design components', () {
     final source = File(
       'lib/Widgets/Item/loftify_item_builder.dart',
     ).readAsStringSync();
@@ -57,8 +57,10 @@ void main() {
     final cardEnd = source.indexOf('static Widget buildLikedButton', cardStart);
     final cardSource = source.substring(cardStart, cardEnd);
     expect(cardSource, contains('LayoutBuilder('));
-    expect(cardSource, contains('LoftifyCard('));
-    expect(cardSource, contains('constraints.maxWidth < 420'));
+    expect(cardSource, contains('loftify-relation-row-'));
+    expect(cardSource, contains('Material('));
+    expect(cardSource, contains('constraints.maxWidth < 280'));
+    expect(cardSource, contains('constraints.maxWidth < 520 && textScale > 1.4'));
 
     final buttonStart = source.indexOf('static Widget buildFramedDoubleButton');
     final buttonEnd =

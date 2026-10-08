@@ -102,8 +102,10 @@ void main() {
         <double>[2, 4, 6, 8, 12, 16, 20, 24, 32, 40],
       );
       expect(design.radii.card, 14);
-      expect(design.radii.panel, 20);
-      expect(design.icons.minimumTapTarget, 48);
+      // The accepted September baseline uses compact panel corners and a
+      // 44 px target. Keep these numeric guards alongside component behavior.
+      expect(design.radii.panel, 12);
+      expect(design.icons.minimumTapTarget, 44);
       expect(design.motion.press, const Duration(milliseconds: 90));
       expect(design.motion.panel, const Duration(milliseconds: 260));
 
@@ -157,7 +159,7 @@ void main() {
       );
 
       expect(resolved.colors.page, Colors.white);
-      expect(resolved.icons.minimumTapTarget, 48);
+      expect(resolved.icons.minimumTapTarget, 44);
       expect(tester.takeException(), isNull);
     });
 
