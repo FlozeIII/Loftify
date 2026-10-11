@@ -15,7 +15,7 @@ $package = & "$PSScriptRoot/package_portable.ps1" -SourceDirectory $source -DllD
 $zip = [IO.Compression.ZipFile]::OpenRead($package.ZipPath)
 try {
     foreach ($relative in @('Loftify.exe', 'sqlite3.dll', 'flutter_windows.dll', 'data/icudtl.dat', 'data/app.so', 'BUILD-PROVENANCE.json')) {
-        if (-not $zip.GetEntry("Loftify-2.5.3-windows-x86_64/$relative")) {
+        if (-not $zip.GetEntry("Loftify-Community-2.5.3-windows-x86_64/$relative")) {
             throw "Package is missing $relative"
         }
     }
@@ -61,7 +61,7 @@ Write-Output 'PASS: existing output ZIP is rejected and preserved'
 
 $zipOnlyOutput = Join-Path $fixture 'zip-only-output'
 New-Item -ItemType Directory -Path $zipOnlyOutput | Out-Null
-$existingZip = Join-Path $zipOnlyOutput 'Loftify-2.5.3-windows-x86_64.zip'
+$existingZip = Join-Path $zipOnlyOutput 'Loftify-Community-2.5.3-windows-x86_64.zip'
 Copy-Item -LiteralPath $package.ZipPath -Destination $existingZip
 $rejectedZipOnly = $false
 try {
@@ -70,7 +70,7 @@ try {
     if ($_.Exception.Message -notlike '*already exists*') { throw }
     $rejectedZipOnly = $true
 }
-if (-not $rejectedZipOnly -or (Test-Path -LiteralPath (Join-Path $zipOnlyOutput 'Loftify-2.5.3-windows-x86_64')) -or (Get-FileHash -LiteralPath $existingZip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expectedHash) {
+if (-not $rejectedZipOnly -or (Test-Path -LiteralPath (Join-Path $zipOnlyOutput 'Loftify-Community-2.5.3-windows-x86_64')) -or (Get-FileHash -LiteralPath $existingZip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expectedHash) {
     throw 'A ZIP-only collision must preserve the ZIP without creating a staging directory'
 }
 Write-Output 'PASS: ZIP-only collision is rejected without staging or overwrite'
