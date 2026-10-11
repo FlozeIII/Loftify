@@ -70,6 +70,10 @@ jobs:
         run: |
           flutter test --no-pub test/utils/community_storage_test.dart
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test fresh startup dialog navigation
+        run: |
+          flutter test --no-pub test/widgets/login/startup_dialog_navigation_test.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Prove captcha regression test rejects both broken layouts
         run: |
           $path = 'lib/Widgets/Item/login_input_item.dart'
