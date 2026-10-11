@@ -9,6 +9,8 @@ import 'package:sqlite3/open.dart';
 import 'package:loftify/Database/database_manager.dart';
 import 'package:loftify/Utils/hive_util.dart';
 import 'package:hive/hive.dart';
+import 'package:loftify/Utils/community_storage.dart';
+import 'package:path_provider/path_provider.dart';
 
 class _StoragePaths extends PathProviderPlatform {
   _StoragePaths(this.support);
@@ -16,6 +18,12 @@ class _StoragePaths extends PathProviderPlatform {
 
   @override
   Future<String?> getApplicationSupportPath() async => support;
+
+  @override
+  Future<String?> getApplicationCachePath() async => p.join(support, 'Local');
+
+  @override
+  Future<String?> getTemporaryPath() async => p.join(support, 'SystemTemp');
 }
 
 void main() {
@@ -63,6 +71,29 @@ void main() {
       expect(ChewieHiveUtil.getBool(HiveUtil.showRecommendArticleKey), isTrue);
     } finally {
       await Hive.close();
+      PathProviderPlatform.instance = original;
+      await fixture.delete(recursive: true);
+    }
+  });
+
+  test('clearing Community cache leaves shared temporary files untouched',
+      () async {
+    final fixture = await Directory.systemTemp.createTemp('community-cache-');
+    final original = PathProviderPlatform.instance;
+    PathProviderPlatform.instance = _StoragePaths(fixture.path);
+    final shared = Directory(p.join(fixture.path, 'SystemTemp'));
+    await shared.create();
+    final sentinel = File(p.join(shared.path, 'other-app.txt'));
+    await sentinel.writeAsString('must remain');
+    try {
+      await initializeCommunityStorage();
+      final temp = await getTemporaryDirectory();
+      expect(temp.path, p.join(fixture.path, 'Local', 'Cache'));
+      await File(p.join(temp.path, 'community.txt')).writeAsString('cache');
+      await CacheUtil.delDir(temp);
+      expect(await sentinel.readAsString(), 'must remain');
+      expect(await (await getTemporaryDirectory()).exists(), isTrue);
+    } finally {
       PathProviderPlatform.instance = original;
       await fixture.delete(recursive: true);
     }

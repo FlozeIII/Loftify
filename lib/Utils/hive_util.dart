@@ -154,31 +154,33 @@ class HiveUtil {
   }
 
   static Future<void> initConfig() async {
-    ChewieHiveUtil.put(HiveUtil.doubleTapActionKey, 1);
-    ChewieHiveUtil.put(HiveUtil.showRecommendVideoKey, false);
-    ChewieHiveUtil.put(HiveUtil.showRecommendArticleKey, true);
-    ChewieHiveUtil.put(HiveUtil.showSearchHistoryKey, true);
-    ChewieHiveUtil.put(HiveUtil.showSearchGuessKey, true);
-    ChewieHiveUtil.put(HiveUtil.showSearchConfigKey, false);
-    ChewieHiveUtil.put(HiveUtil.showSearchRankKey, true);
-    ChewieHiveUtil.put(HiveUtil.showCollectionPreNextKey, true);
-    ChewieHiveUtil.put(
-        HiveUtil.waterfallFlowImageQualityKey, ImageQuality.medium.index);
-    ChewieHiveUtil.put(
-        HiveUtil.postDetailImageQualityKey, ImageQuality.origin.index);
-    ChewieHiveUtil.put(
-        HiveUtil.imageDetailImageQualityKey, ImageQuality.raw.index);
-    ChewieHiveUtil.put(
-        HiveUtil.tapLinkButtonImageQualityKey, ImageQuality.raw.index);
-    ChewieHiveUtil.put(
-        HiveUtil.longPressLinkButtonImageQualityKey, ImageQuality.raw.index);
-    ChewieHiveUtil.put(HiveUtil.followMainColorKey, true);
-    ChewieHiveUtil.put(HiveUtil.inappWebviewKey, true);
+    final defaults = <String, Object>{
+      doubleTapActionKey: 1,
+      showRecommendVideoKey: false,
+      showRecommendArticleKey: true,
+      showSearchHistoryKey: true,
+      showSearchGuessKey: true,
+      showSearchConfigKey: false,
+      showSearchRankKey: true,
+      showCollectionPreNextKey: true,
+      waterfallFlowImageQualityKey: ImageQuality.medium.index,
+      postDetailImageQualityKey: ImageQuality.origin.index,
+      imageDetailImageQualityKey: ImageQuality.raw.index,
+      tapLinkButtonImageQualityKey: ImageQuality.raw.index,
+      longPressLinkButtonImageQualityKey: ImageQuality.raw.index,
+      followMainColorKey: true,
+      inappWebviewKey: true,
+    };
+    final box = Hive.box(settingsBox);
+    for (final entry in defaults.entries) {
+      if (!box.containsKey(entry.key)) await box.put(entry.key, entry.value);
+    }
   }
 
   static Future<void> initBox() async {
     await Hive.openBox(HiveUtil.settingsBox,
         path: await FileUtil.getApplicationDir());
+    await initConfig();
   }
 
   static void setWindowSize(Size size) => ChewieHiveUtil.setWindowSize(size);

@@ -260,7 +260,6 @@ class MainScreenState extends BaseWindowState<MainScreen>
     if (ChewieHiveUtil.isFirstLogin() &&
         ChewieHiveUtil.getString(HiveUtil.tokenKey, defaultValue: null) ==
             null) {
-      HiveUtil.initConfig();
       ChewieHiveUtil.setFirstLogin();
       if (ResponsiveUtil.isLandscapeLayout()) {
         DialogBuilder.showPageDialog(context,
