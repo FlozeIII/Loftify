@@ -86,7 +86,7 @@ jobs:
 
       - name: Ensure Inno Setup compiler
         run: |
-          choco install innosetup --version=6.4.3 --yes --no-progress --allow-downgrade
+          choco install innosetup --version=6.7.1 --yes --no-progress --allow-downgrade
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # Both forms come from this one build; a missing installer fails the job.

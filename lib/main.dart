@@ -52,7 +52,10 @@ Future<void> runMyApp(List<String> args) async {
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     launchAtStartup.setup(
       appName: packageInfo.appName,
-      appPath: Platform.resolvedExecutable,
+      // The pinned Windows launcher writes this value directly to Run.
+      appPath: Platform.isWindows
+          ? '"${Platform.resolvedExecutable}"'
+          : Platform.resolvedExecutable,
     );
     await LocalNotifier.instance.setup(
       appName: packageInfo.appName,

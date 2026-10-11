@@ -75,14 +75,42 @@ begin
     Result := 'This directory contains Loftify. Choose a separate directory for Loftify Community.';
 end;
 
+function CommandExecutable(Command: String): String;
+var
+  Separator: Integer;
+begin
+  Command := Trim(Command);
+  Result := '';
+  if Copy(Command, 1, 1) = '"' then begin
+    Delete(Command, 1, 1);
+    Separator := Pos('"', Command);
+    if Separator > 0 then Result := Copy(Command, 1, Separator - 1);
+  end else begin
+    Separator := Pos(' ', Command);
+    if Separator = 0 then Result := Command
+    else Result := Copy(Command, 1, Separator - 1);
+  end;
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   Command: String;
+  Executable: String;
 begin
   if CurUninstallStep = usUninstall then
-    if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', '{#MyAppName}', Command) then
-      if Pos(Lowercase(ExpandConstant('{app}\{#MyAppExeName}')), Lowercase(Command)) > 0 then
+    if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', '{#MyAppName}', Command) then begin
+      // launch_at_startup 0.3.1 also produced complete unquoted paths with
+      // spaces when no arguments were supplied. Match that legacy form whole.
+      if Lowercase(Trim(Command)) = Lowercase(ExpandConstant('{app}\{#MyAppExeName}')) then
+        Executable := Trim(Command)
+      else
+        Executable := CommandExecutable(Command);
+      if (Executable <> '') and
+          (Lowercase(ExpandFileName(Executable)) = Lowercase(ExpandConstant('{app}\{#MyAppExeName}'))) then begin
         RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', '{#MyAppName}');
+        RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run', '{#MyAppName}');
+      end;
+    end;
 end;
 
 ; No UninstallDelete section: settings, cookies, databases and user downloads are retained.
