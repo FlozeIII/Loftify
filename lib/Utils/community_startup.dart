@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:path/path.dart' as path;
 import 'package:win32_registry/win32_registry.dart';
 
 /// Upgrade only our argument-free legacy Run command. In particular, leave
@@ -15,8 +14,9 @@ void normalizeCommunityStartupCommand(String appName, String executable) {
   try {
     final command = key.getValueAsString(appName);
     if (command == null || command.startsWith('"')) return;
-    if (path.windows.normalize(command).toLowerCase() !=
-        path.windows.normalize(executable).toLowerCase()) {
+    // The old launcher emitted this path verbatim. Do not normalize a command:
+    // argument text containing path segments must never establish ownership.
+    if (command.toLowerCase() != executable.toLowerCase()) {
       return;
     }
     key.createValue(RegistryValue(
