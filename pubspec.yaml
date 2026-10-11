@@ -84,6 +84,7 @@ dependencies:
   window_manager: ^0.4.3 # 窗口管理
   restart_app: ^1.2.1 # 重启APP
   launch_at_startup: ^0.3.1 # 开机启动
+  win32_registry: ^1.1.5
   local_notifier: ^0.1.6 # 本地通知
   protocol_handler: ^0.2.0 # 协议处理
   background_downloader: 9.5.8

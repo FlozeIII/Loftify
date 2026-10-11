@@ -14,6 +14,7 @@ import 'package:loftify/Database/database_manager.dart';
 import 'package:loftify/Utils/app_provider.dart';
 import 'package:loftify/Utils/cloud_control_provider.dart';
 import 'package:loftify/Utils/community_storage.dart';
+import 'package:loftify/Utils/community_startup.dart';
 import 'package:loftify/Utils/display_mode_util.dart';
 import 'package:loftify/Utils/download_task_manager.dart';
 import 'package:loftify/Utils/hive_util.dart';
@@ -50,6 +51,12 @@ Future<void> runMyApp(List<String> args) async {
   if (ResponsiveUtil.isDesktop()) {
     await initWindow();
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    try {
+      normalizeCommunityStartupCommand(
+          packageInfo.appName, Platform.resolvedExecutable);
+    } catch (e, t) {
+      ILogger.error('Failed to normalize Community startup command', e, t);
+    }
     launchAtStartup.setup(
       appName: packageInfo.appName,
       // The pinned Windows launcher writes this value directly to Run.
@@ -61,7 +68,7 @@ Future<void> runMyApp(List<String> args) async {
       appName: packageInfo.appName,
       shortcutPolicy: ShortcutPolicy.requireCreate,
     );
-    ChewieHiveUtil.put(HiveUtil.launchAtStartupKey,
+    await ChewieHiveUtil.put(HiveUtil.launchAtStartupKey,
         await LaunchAtStartup.instance.isEnabled());
     // The Community installer owns its protocol. A ZIP launch must not take
     // over either the upstream lofter scheme or an installed Community copy.
