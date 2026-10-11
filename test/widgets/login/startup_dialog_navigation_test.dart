@@ -17,8 +17,6 @@ void main() {
     await Hive.openBox(ChewieHiveUtil.settingsBox);
   });
 
-  tearDownAll(() async => Hive.close());
-
   testWidgets('fresh startup login dialog closes back to the guest screen',
       (tester) async {
     tester.view.physicalSize = const Size(1280, 800);

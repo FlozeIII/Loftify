@@ -68,7 +68,9 @@ class ChewieProvider with ChangeNotifier {
 
   late BuildContext _rootContext;
 
-  BuildContext get rootContext => _rootContext;
+  // The first outer Overlay frame can save a context above the Navigator.
+  // Resolve its mounted state at use time, also surviving root route changes.
+  BuildContext get rootContext => globalNavigatorState?.context ?? _rootContext;
 
   bool initedRootContext = false;
 
