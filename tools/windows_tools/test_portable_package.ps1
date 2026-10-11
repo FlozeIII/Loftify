@@ -5,7 +5,7 @@ $source = Join-Path $fixture 'runner'
 $dlls = Join-Path $fixture 'dlls'
 $output = Join-Path $fixture 'output'
 New-Item -ItemType Directory -Path "$source/data/flutter_assets", $dlls -Force | Out-Null
-foreach ($relative in @('Loftify.exe', 'flutter_windows.dll', 'data/icudtl.dat', 'data/app.so')) {
+foreach ($relative in @('LoftifyCommunity.exe', 'flutter_windows.dll', 'data/icudtl.dat', 'data/app.so')) {
     [IO.File]::WriteAllText((Join-Path $source $relative), "fixture: $relative")
 }
 [IO.File]::WriteAllText((Join-Path $dlls 'sqlite3.dll'), 'sqlite fixture')
@@ -14,7 +14,7 @@ $package = & "$PSScriptRoot/package_portable.ps1" -SourceDirectory $source -DllD
 
 $zip = [IO.Compression.ZipFile]::OpenRead($package.ZipPath)
 try {
-    foreach ($relative in @('Loftify.exe', 'sqlite3.dll', 'flutter_windows.dll', 'data/icudtl.dat', 'data/app.so', 'BUILD-PROVENANCE.json')) {
+    foreach ($relative in @('LoftifyCommunity.exe', 'sqlite3.dll', 'flutter_windows.dll', 'data/icudtl.dat', 'data/app.so', 'BUILD-PROVENANCE.json', 'DISTRIBUTION.json')) {
         if (-not $zip.GetEntry("Loftify-Community-2.5.3-windows-x86_64/$relative")) {
             throw "Package is missing $relative"
         }
@@ -23,6 +23,14 @@ try {
     $zip.Dispose()
 }
 $provenance = Get-Content -LiteralPath $package.ProvenancePath -Raw | ConvertFrom-Json
+$distributionPath = Join-Path (Split-Path $package.ProvenancePath) 'DISTRIBUTION.json'
+if (-not (Test-Path -LiteralPath $distributionPath)) {
+    throw 'Portable package must declare its Community identity and distribution kind'
+}
+$distribution = Get-Content -LiteralPath $distributionPath -Raw | ConvertFrom-Json
+if ($distribution.applicationId -ne 'io.github.flozeiii.loftify.community' -or $distribution.kind -ne 'portable' -or $distribution.sourceCommit -ne $commit -or $distribution.version -ne '2.5.3' -or $distribution.architecture -ne 'x86_64' -or $distribution.schemaVersion -ne 1) {
+    throw 'Portable distribution metadata does not match the declared package'
+}
 if ($provenance.sourceCommit -ne $commit -or $provenance.flutterVersion -ne '3.41.5') {
     throw 'Package provenance does not describe the supplied build'
 }
@@ -74,3 +82,13 @@ if (-not $rejectedZipOnly -or (Test-Path -LiteralPath (Join-Path $zipOnlyOutput 
     throw 'A ZIP-only collision must preserve the ZIP without creating a staging directory'
 }
 Write-Output 'PASS: ZIP-only collision is rejected without staging or overwrite'
+
+$installerStage = & "$PSScriptRoot/prepare_installer.ps1" -PortableDirectory $package.StageDirectory -OutputDirectory (Join-Path $fixture 'installer-output')
+$installedMetadata = Get-Content -LiteralPath (Join-Path $installerStage 'DISTRIBUTION.json') -Raw | ConvertFrom-Json
+if ($installedMetadata.kind -ne 'installed' -or $installedMetadata.sourceCommit -ne $commit -or $installedMetadata.applicationId -ne 'io.github.flozeiii.loftify.community') {
+    throw 'Installer must identify the installed form of the same Community build'
+}
+if ((Get-FileHash -LiteralPath (Join-Path $installerStage 'LoftifyCommunity.exe')).Hash -ne (Get-FileHash -LiteralPath (Join-Path $package.StageDirectory 'LoftifyCommunity.exe')).Hash -or (Get-Content -LiteralPath $distributionPath -Raw | ConvertFrom-Json).kind -ne 'portable') {
+    throw 'Installer staging must preserve the binary and portable distribution metadata'
+}
+Write-Output 'PASS: installer staging has installed metadata and the same executable'

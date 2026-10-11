@@ -59,7 +59,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Analyze login and regression tests
         run: |
-          flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib/Widgets/Item/login_input_item.dart lib/Widgets/Login/loftify_login_layout.dart lib/Screens/Login/login_by_captcha_screen.dart test
+          flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib/main.dart lib/Database/database_manager.dart lib/Utils/community_storage.dart lib/Utils/hive_util.dart lib/Screens/main_screen.dart lib/Widgets/Item/login_input_item.dart lib/Widgets/Login/loftify_login_layout.dart lib/Screens/Login/login_by_captcha_screen.dart test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test community storage isolation
         run: |
@@ -121,19 +121,24 @@ jobs:
         run: |
           flutter test --no-pub
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Build Windows portable ZIP
+      - name: Ensure Inno Setup compiler
+        run: |
+          choco install innosetup --version=6.4.3 --yes --no-progress --allow-downgrade
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Windows Community ZIP and installer
         run: |
           flutter build windows --release
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $versionLine = Select-String -LiteralPath pubspec.yaml -Pattern '^version:\s*(\S+)'
           $version = $versionLine.Matches[0].Groups[1].Value.Split('+')[0]
-          ./tools/windows_tools/package_portable.ps1 -Version $version -SourceCommit $env:GITHUB_SHA -FlutterVersion $env:FLUTTER_VERSION
+          ./tools/windows_tools/package_windows.ps1 -Version $version -SourceCommit $env:GITHUB_SHA -FlutterVersion $env:FLUTTER_VERSION
       - name: Upload baseline artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-baseline-${{ github.sha }}
           path: |
             build/windows/outputs/*.zip
+            build/windows/outputs/*.exe
             build/windows/outputs/*.sha256
           if-no-files-found: error
       - name: Upload regression diagnostics

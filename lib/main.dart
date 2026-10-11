@@ -13,6 +13,7 @@ import 'package:local_notifier/local_notifier.dart';
 import 'package:loftify/Database/database_manager.dart';
 import 'package:loftify/Utils/app_provider.dart';
 import 'package:loftify/Utils/cloud_control_provider.dart';
+import 'package:loftify/Utils/community_storage.dart';
 import 'package:loftify/Utils/display_mode_util.dart';
 import 'package:loftify/Utils/download_task_manager.dart';
 import 'package:loftify/Utils/hive_util.dart';
@@ -53,15 +54,16 @@ Future<void> runMyApp(List<String> args) async {
       appName: packageInfo.appName,
       appPath: Platform.resolvedExecutable,
     );
-    await launchAtStartup.enable();
-    await launchAtStartup.disable();
     await LocalNotifier.instance.setup(
       appName: packageInfo.appName,
       shortcutPolicy: ShortcutPolicy.requireCreate,
     );
     ChewieHiveUtil.put(HiveUtil.launchAtStartupKey,
         await LaunchAtStartup.instance.isEnabled());
-    for (String scheme in kWindowsSchemes) {
+    // The Community installer owns its protocol. A ZIP launch must not take
+    // over either the upstream lofter scheme or an installed Community copy.
+    final schemes = Platform.isWindows ? const <String>[] : kWindowsSchemes;
+    for (String scheme in schemes) {
       await protocolHandler.register(scheme);
     }
     await HotKeyManager.instance.unregisterAll();
@@ -77,13 +79,17 @@ Future<void> runMyApp(List<String> args) async {
   } else {
     home = MainScreen(key: mainScreenKey);
   }
-  runApp(MyApp(home: home));
+  runApp(MyApp(
+    home: home,
+    title: Platform.isWindows ? 'Loftify Community' : 'Loftify',
+  ));
   FlutterNativeSplash.remove();
 }
 
 Future<void> initApp() async {
   FlutterError.onError = onError;
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  await initializeCommunityStorage();
   imageCache.maximumSizeBytes = 1024 * 1024 * 1024 * 2;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 1024 * 1024 * 1024 * 2;
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);

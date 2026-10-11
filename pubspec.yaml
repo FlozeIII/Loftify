@@ -57,6 +57,7 @@ dependencies:
   dio: ^5.4.3+1 # 网络请求
   hive: ^2.2.3 # 轻量存储
   path_provider: ^2.0.12
+  path_provider_platform_interface: ^2.1.3
   sqflite: ^2.3.3+1 # SQLite数据库
   file_picker: ^8.3.1 # 文件选择
   pointycastle: 3.9.1
