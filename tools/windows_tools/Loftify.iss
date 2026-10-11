@@ -113,4 +113,4 @@ begin
     end;
 end;
 
-; No UninstallDelete section: settings, cookies, databases and user downloads are retained.
+// No UninstallDelete section: settings, cookies, databases and user downloads are retained.

@@ -50,6 +50,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate installer compiler and script
+        run: |
+          choco install innosetup --version=6.7.1 --yes --no-progress --allow-downgrade
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./tools/windows_tools/check_installer_syntax.ps1
+
       # Setup Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2.21.0
@@ -83,11 +89,6 @@ jobs:
         run: |
           echo "version=$(head -n 2 pubspec.yaml | tail -n 1 | cut -d ' ' -f 2 | cut -d '+' -f 1)" >> $GITHUB_OUTPUT
           echo "date=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
-
-      - name: Ensure Inno Setup compiler
-        run: |
-          choco install innosetup --version=6.7.1 --yes --no-progress --allow-downgrade
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # Both forms come from this one build; a missing installer fails the job.
       - name: Build Windows
