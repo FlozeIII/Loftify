@@ -11,7 +11,7 @@ class DatabaseManager {
   static Database? _database;
 
   static Future<Database> getDataBase() async {
-    if (_database == null) {
+    if (_database == null || !_database!.isOpen) {
       await _initDataBase();
     }
     return _database!;
@@ -22,8 +22,11 @@ class DatabaseManager {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }
-    if (_database == null) {
-      String path = join(await getDatabasesPath(), _dbName);
+    if (_database == null || !_database!.isOpen) {
+      final directory = ResponsiveUtil.isWindows()
+          ? await FileUtil.getDatabaseDir()
+          : await getDatabasesPath();
+      String path = join(directory, _dbName);
       _database =
           await openDatabase(path, version: _dbVersion, onCreate: _onCreate);
     }
