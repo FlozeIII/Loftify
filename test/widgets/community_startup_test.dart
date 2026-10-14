@@ -282,7 +282,9 @@ void main() {
       expect(externalRequests.where((u) => u.path.endsWith('/control.json')), isEmpty);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
-      await frames(tester);
+      // The detail page resets its transient download icon after two seconds.
+      // Drain that existing recovery timer after disposal before invariants run.
+      await tester.pump(const Duration(seconds: 3));
   }, timeout: const Timeout(Duration(seconds: 60)));
 
   tearDownAll(() async {
