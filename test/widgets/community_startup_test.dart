@@ -250,7 +250,8 @@ void main() {
         if (DownloadTaskManager.instance.tasks.any((task) => task.url == fixtureImageUrl) &&
             !observingTask) {
           observingTask = true;
-          final task = DownloadTaskManager.instance.tasks.last;
+          final task = DownloadTaskManager.instance.tasks.firstWhere(
+              (task) => task.url == fixtureImageUrl);
           DownloadTaskManager.instance.waitForCompletion(task.id).then(transfer.complete);
         }
       }
@@ -265,7 +266,7 @@ void main() {
         await tester.runAsync(() async {
           await Future<void>.delayed(const Duration(milliseconds: 30));
         });
-        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 20));
       }
       expect(transfer.isCompleted, isTrue,
           reason: 'The download action must reach a terminal task state');
