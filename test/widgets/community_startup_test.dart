@@ -232,7 +232,15 @@ void main() {
       )));
       await frames(tester);
       expect(requests.map((r) => r.path), contains('/oldapi/post/detail.api'));
-      expect(find.text('Community readable article', findRichText: true), findsWidgets);
+      final title = find.textContaining('Community readable article', findRichText: true);
+      for (var i = 0; i < 20 && title.evaluate().isEmpty; i++) {
+        // HTML and the cached image finish at the real codec/file boundary.
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 30));
+        });
+        await tester.pump();
+      }
+      expect(title, findsWidgets);
       final download = find.byType(PostDownloadActionIcon);
       expect(download, findsOneWidget);
       final button = find.ancestor(of: download, matching: find.byType(CircleIconButton));
