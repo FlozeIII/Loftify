@@ -7,8 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loftify/Screens/Setting/about_setting_screen.dart';
 import 'package:loftify/Utils/app_provider.dart';
-import 'package:loftify/main.dart';
+import 'package:loftify/Utils/cloud_control_provider.dart';
+import 'package:loftify/Widgets/loftify_icons.dart';
+import 'package:loftify/l10n/l10n.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -56,12 +59,35 @@ void main() {
     appProvider.locale = const Locale('en');
 
     await tester.pumpWidget(
-      const MyApp(home: AboutSettingScreen(showTitleBar: false)),
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: appProvider),
+          ChangeNotifierProvider.value(value: controlProvider),
+        ],
+        child: MaterialApp(
+          locale: const Locale('en'),
+          navigatorKey: chewieProvider.globalNavigatorKey,
+          theme: ChewieThemeColorData.defaultLightThemes.first.toThemeData(),
+          localizationsDelegates: const [
+            ChewieLocalizations.delegate,
+            ...AppLocalizations.localizationsDelegates,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Builder(builder: (context) {
+            chewieProvider.setRootContext(context);
+            return const AboutSettingScreen(showTitleBar: false);
+          }),
+        ),
+      ),
     );
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
-    await tester.ensureVisible(find.text('Report a Bug'));
-    await tester.tap(find.text('Report a Bug'));
+    final feedback = find.byWidgetPredicate(
+      (widget) => widget is EntryItem && widget.leading == LoftifyIcons.bug,
+    );
+    expect(feedback, findsOneWidget);
+    await tester.ensureVisible(feedback);
+    await tester.tap(feedback);
     await tester.pump();
 
     expect(launched, ['https://github.com/FlozeIII/Loftify/issues']);
