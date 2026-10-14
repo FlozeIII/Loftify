@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:awesome_chewie/awesome_chewie.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +40,9 @@ void main() {
     );
     await directory.create(recursive: true);
     Hive.init(directory.path);
-    await Hive.openBox(ChewieHiveUtil.settingsBox);
+    // Widget callbacks run under FakeAsync. Keep settings at the real Hive API
+    // with its memory backend so a disk write cannot strand the next fixture.
+    await Hive.openBox(ChewieHiveUtil.settingsBox, bytes: Uint8List(0));
     await initializeDateFormatting();
     await ChewieHiveUtil.put(ChewieHiveUtil.fontFamilyKey, '');
     PathProviderPlatform.instance = _TestPaths('${directory.path}/support');

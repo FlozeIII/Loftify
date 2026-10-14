@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:awesome_chewie/awesome_chewie.dart';
 import 'package:dio/dio.dart';
@@ -71,7 +72,7 @@ void main() {
     final root = Directory('build/test_hive/community_startup').absolute;
     await root.create(recursive: true);
     Hive.init(root.path);
-    await Hive.openBox(ChewieHiveUtil.settingsBox);
+    await Hive.openBox(ChewieHiveUtil.settingsBox, bytes: Uint8List(0));
     PathProviderPlatform.instance = _Paths('${root.path}/support');
     await initializeDateFormatting();
     await ChewieHiveUtil.put(ChewieHiveUtil.savePathKey, '${root.path}/downloads');
