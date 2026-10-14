@@ -209,7 +209,7 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await frames(tester);
-  });
+  }, timeout: const Timeout(Duration(seconds: 60)));
 
   testWidgets('article content request and usable download action survive historical disabled features',
       (tester) async {

@@ -73,6 +73,7 @@ jobs:
           flutter test --no-pub test/utils/community_storage_test.dart
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test community configuration entry points
+        timeout-minutes: 4
         run: |
           flutter test --no-pub test/screens/setting/community_configuration_test.dart test/widgets/community_startup_test.dart
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
