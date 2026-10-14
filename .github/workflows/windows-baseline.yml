@@ -70,6 +70,10 @@ jobs:
         run: |
           flutter test --no-pub test/utils/community_storage_test.dart
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test community configuration entry points
+        run: |
+          flutter test --no-pub test/screens/setting/community_configuration_test.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test fresh startup dialog navigation
         run: |
           flutter test --no-pub test/widgets/login/startup_dialog_navigation_test.dart
