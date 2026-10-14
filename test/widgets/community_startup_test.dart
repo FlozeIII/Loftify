@@ -147,7 +147,12 @@ void main() {
                 'id': 42, 'blogId': 7, 'type': 1,
                 'title': 'Community readable article',
                 'content': '<p>Community article body</p><img src="$fixtureImageUrl">',
-                'blogInfo': {'blogId': 7, 'blogName': 'fixture', 'blogNickName': 'Fixture'},
+                'blogInfo': {
+                  'blogId': 7, 'blogName': 'fixture', 'blogNickName': 'Fixture',
+                  'bigAvaImg': '', 'homePageUrl': '', 'imageDigitStamp': false,
+                  'imageProtected': false, 'imageStamp': false,
+                  'isOriginalAuthor': false,
+                },
                 'postCount': {'favoriteCount': 0, 'responseCount': 0},
               },
             }]},
@@ -174,6 +179,10 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await frames(tester);
+    });
   }
 
   testWidgets('mounted startup reaches login, guest browsing and search with no remote configuration',
@@ -189,7 +198,9 @@ void main() {
         '/v2.0/uploadNewDevice.api', '/v2.0/autoLogin.api', '/v1.1/configs.api',
         '/lpt/photoCaptcha/getPhotoCaptcha.do',
       ]));
-      await tester.tap(find.byIcon(LucideIcons.x));
+      final close = find.widgetWithIcon(ToolButton, LucideIcons.x);
+      expect(close, findsOneWidget);
+      await tester.tap(close);
       await frames(tester);
       expect(find.byType(LoginByCaptchaScreen), findsNothing);
       expect(find.byType(HomeScreen), findsOneWidget);
@@ -221,7 +232,7 @@ void main() {
       )));
       await frames(tester);
       expect(requests.map((r) => r.path), contains('/oldapi/post/detail.api'));
-      expect(find.text('Community readable article'), findsWidgets);
+      expect(find.text('Community readable article', findRichText: true), findsWidgets);
       final download = find.byType(PostDownloadActionIcon);
       expect(download, findsOneWidget);
       final button = find.ancestor(of: download, matching: find.byType(CircleIconButton));
