@@ -110,7 +110,7 @@ class LoftifyControl {
 
   String get releaseUrl => contacts?.releaseUrl ?? GlobalConstant.releaseUrl;
 
-  String get issueUrl => contacts?.issueUrl ?? GlobalConstant.issueUrl;
+  String get issueUrl => contacts?.issueUrl ?? Constant.communityIssueUrl;
 
   factory LoftifyControl.fromJson(Map<String, dynamic> json) {
     return LoftifyControl(
@@ -152,7 +152,7 @@ class LoftifyControl {
       feedbackEmail: Constant.feedbackEmail,
       feedbackBody: Constant.feedbackBody,
       feedbackSubject: Constant.feedbackSubject,
-      issueUrl: GlobalConstant.issueUrl,
+      issueUrl: Constant.communityIssueUrl,
       repoUrl: GlobalConstant.repoUrl,
       officialWebsite: GlobalConstant.officialWebsite,
       shareText: Constant.shareText,

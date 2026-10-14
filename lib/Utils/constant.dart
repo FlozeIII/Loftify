@@ -8,6 +8,9 @@ const defaultMail = "";
 
 const defaultFilenameFormat = "{original_name}";
 
+const communityRepoUrl = 'https://github.com/FlozeIII/Loftify';
+const communityIssueUrl = '$communityRepoUrl/issues';
+
 const defaultWindowSize = Size(1120, 740);
 
 const postDetailTwoPaneMinWindowSize = Size(630, 700);

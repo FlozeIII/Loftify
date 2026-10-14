@@ -6,12 +6,37 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loftify/Screens/Setting/about_setting_screen.dart';
+import 'package:loftify/Screens/main_screen.dart';
 import 'package:loftify/Utils/app_provider.dart';
 import 'package:loftify/Utils/cloud_control_provider.dart';
+import 'package:loftify/Utils/hive_util.dart';
 import 'package:loftify/Widgets/loftify_icons.dart';
 import 'package:loftify/l10n/l10n.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+
+class _TestPaths extends PathProviderPlatform {
+  _TestPaths(this.root);
+  final String root;
+
+  @override
+  Future<String?> getApplicationSupportPath() async => root;
+}
+
+class _OfflineClient implements HttpClient {
+  _OfflineClient(this.requests);
+  final List<Uri> requests;
+
+  @override
+  Future<HttpClientRequest> openUrl(String method, Uri url) async {
+    requests.add(url);
+    throw const SocketException('Test-only offline configuration endpoint');
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +49,7 @@ void main() {
     await directory.create(recursive: true);
     Hive.init(directory.path);
     await Hive.openBox(ChewieHiveUtil.settingsBox);
+    PathProviderPlatform.instance = _TestPaths('${directory.path}/support');
     await ChewieHiveUtil.put(ChewieHiveUtil.inappWebviewKey, false);
     PackageInfo.setMockInitialValues(
       appName: 'Loftify Community',
@@ -32,6 +58,29 @@ void main() {
       buildNumber: '2503',
       buildSignature: '',
     );
+  });
+
+  test('startup makes no configuration request with historical overrides',
+      () async {
+    await ChewieHiveUtil.put(HiveUtil.autoCheckUpdateKey, false);
+    await ChewieHiveUtil.put(HiveUtil.overrideCloudControlKey, true);
+    await ChewieHiveUtil.put('cloudControl', {
+      'enableApp': false,
+      'features': {'showDress': false},
+      'contacts': {'issueUrl': 'https://example.invalid/upstream'},
+    });
+    appProvider.token = '';
+    final requests = <Uri>[];
+    await HttpOverrides.runZoned(() async {
+      MainScreenState().fetchBasicData();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }, createHttpClient: (_) => _OfflineClient(requests));
+
+    expect(requests, isEmpty);
+    expect(controlProvider.globalControl.enableAppNotNull, isTrue);
+    expect(controlProvider.globalControl.showDress, isTrue);
+    expect(controlProvider.globalControl.issueUrl,
+        'https://github.com/FlozeIII/Loftify/issues');
   });
 
   setUp(() {
