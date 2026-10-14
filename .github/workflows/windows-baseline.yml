@@ -64,6 +64,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Analyze login and regression tests
         run: |
+          flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib/Models/cloud_control.dart lib/Utils/cloud_control_provider.dart lib/Utils/constant.dart lib/Utils/utils.dart lib/Screens/Setting/about_setting_screen.dart lib/Screens/Setting/egg_screen.dart lib/Screens/Setting/image_setting_screen.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib/main.dart lib/Database/database_manager.dart lib/Utils/community_storage.dart lib/Utils/community_startup.dart lib/Utils/hive_util.dart lib/Screens/main_screen.dart lib/Widgets/Item/login_input_item.dart lib/Widgets/Login/loftify_login_layout.dart lib/Screens/Login/login_by_captcha_screen.dart test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test community storage isolation

@@ -2,9 +2,6 @@ import 'package:awesome_chewie/awesome_chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:loftify/Utils/lottie_files.dart';
 
-import '../../Models/cloud_control.dart';
-import '../../Utils/cloud_control_provider.dart';
-import '../../Utils/hive_util.dart';
 import '../../l10n/l10n.dart';
 
 class EggScreen extends StatefulWidget {
@@ -21,9 +18,6 @@ class _EggScreenState extends BaseDynamicState<EggScreen>
   Widget? celebrateWidget;
   bool _showCelebrate = false;
   late AnimationController _celebrateController;
-  bool overrideCloudControl = ChewieHiveUtil.getBool(
-      HiveUtil.overrideCloudControlKey,
-      defaultValue: false);
 
   @override
   void initState() {
@@ -112,7 +106,6 @@ class _EggScreenState extends BaseDynamicState<EggScreen>
                     ),
                   ),
                 ),
-                ..._buildButton(),
               ],
             ),
           ),
@@ -132,31 +125,4 @@ class _EggScreenState extends BaseDynamicState<EggScreen>
     );
   }
 
-  _buildButton() {
-    return [
-      const SizedBox(height: 10),
-      CheckboxItem(
-        value: overrideCloudControl,
-        title: appLocalizations.overrideCloudControl,
-        description: appLocalizations.overrideCloudControlDescription,
-        roundTop: true,
-        roundBottom: true,
-        onTap: () {
-          setState(() {
-            overrideCloudControl = !overrideCloudControl;
-            ChewieHiveUtil.put(
-                HiveUtil.overrideCloudControlKey, overrideCloudControl);
-            if (overrideCloudControl) {
-              controlProvider.globalControl =
-                  LoftifyControl.getOverridedCloudControl(
-                      controlProvider.originalCloudControl);
-            } else {
-              controlProvider.globalControl =
-                  controlProvider.originalCloudControl;
-            }
-          });
-        },
-      ),
-    ];
-  }
 }

@@ -242,14 +242,9 @@ class _AboutSettingScreenState extends BaseDynamicState<AboutSettingScreen>
                             EntryItem(
                               title: appLocalizations.contact,
                               onTap: () {
-                                UriUtil.launchEmailUri(
+                                UriUtil.launchUrlUri(
                                   context,
-                                  cloudControlProvider
-                                      .globalControl.feedbackEmail,
-                                  subject: cloudControlProvider
-                                      .globalControl.feedbackSubject,
-                                  body: cloudControlProvider
-                                      .globalControl.feedbackBody,
+                                  cloudControlProvider.globalControl.issueUrl,
                                 );
                               },
                               showLeading: true,
@@ -257,7 +252,7 @@ class _AboutSettingScreenState extends BaseDynamicState<AboutSettingScreen>
                               trailing: LoftifyIcons.contact,
                             ),
                             EntryItem(
-                              title: appLocalizations.officialWebsite,
+                              title: appLocalizations.communityPage,
                               onTap: () {
                                 UriUtil.launchUrlUri(
                                   context,
@@ -269,29 +264,6 @@ class _AboutSettingScreenState extends BaseDynamicState<AboutSettingScreen>
                               leading: LoftifyIcons.language,
                               trailing: LoftifyIcons.openExternal,
                             ),
-                            if (cloudControlProvider.globalControl.showQQGroup)
-                              EntryItem(
-                                title: appLocalizations.qqGroup,
-                                onTap: () {
-                                  UriUtil.openExternal(cloudControlProvider
-                                      .globalControl.qqGroupUrl);
-                                },
-                                showLeading: true,
-                                leading: LoftifyIcons.group,
-                                trailing: LoftifyIcons.openExternal,
-                              ),
-                            if (cloudControlProvider
-                                .globalControl.showTelegramGroup)
-                              EntryItem(
-                                title: appLocalizations.telegramGroup,
-                                onTap: () {
-                                  UriUtil.openExternal(cloudControlProvider
-                                      .globalControl.telegramGroupUrl);
-                                },
-                                showLeading: true,
-                                leading: LoftifyIcons.send,
-                                trailing: LoftifyIcons.openExternal,
-                              ),
                           ],
                         ),
                       ],

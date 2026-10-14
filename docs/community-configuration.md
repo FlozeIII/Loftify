@@ -1,0 +1,76 @@
+# Community 本地功能配置与支持入口（Issue #4）
+
+## 已核对的旧行为
+
+`MainScreen.fetchBasicData` 通过 `ServerApi.getCloudControl` 请求上游
+`https://apps.cloudchewie.com/loftify/control.json`。返回值替换全局配置；
+`enableApp=false` 会建立简化托盘并显示必须退出的提示。
+
+配置原先由可变 `LoftifyControlProvider` 提供，缺失字段回退到上游常量。
+彩蛋页的 `overrideCloudControl` 选项能够重新选择远程配置或覆盖版本。
+上游配置未持久化到 Hive；保留的旧覆盖开关键仍需要确保无法影响社区配置。
+
+| 旧字段或入口 | 实际消费位置 |
+| --- | --- |
+| `enableApp`、停用原因 | ServerApi 的启动响应与退出提示 |
+| `enableEasterEggs` | 关于页长按彩蛋 |
+| `showDress` | 主导航与个人页装扮入口 |
+| `showTagDress` | 标签详情装扮入口 |
+| `showCatutu` | 帖子回礼预览；仍受 LOFTER 返回数据限制 |
+| `showDownloadButton` | 帖子下载入口，与用户自己的显示偏好共同决定 |
+| `showVideoDownloadButton` | 视频详情下载入口 |
+| `showImageQualitySettings`、`showBigImageSettings` | 图片设置分组 |
+| `showCopyLinkButton` | 仅模型字段，没有消费者 |
+| `showDownloadAllButton` | 仅旧模型注释出现，没有实现字段或消费者 |
+| `enableUpdateFromS3`、`enableOverrideCloudControl` | 仅模型字段，没有消费者；彩蛋开关直接读取 Hive |
+| Issues、仓库、网站、分享、邮箱 | 关于页支持入口 |
+| QQ、Telegram | 关于页群组入口与首次启动 QQ 邀请 |
+| 网站、仓库 | 托盘菜单直接使用共享组件的上游常量，绕过了配置提供者 |
+| 评分 | 共享组件内的本地评分对话框，不发送外部请求 |
+| 赞助 | 未找到应用内消费入口；本票不新增赞助地址 |
+
+## 本地策略
+
+历史文件名 `Models/cloud_control.dart` 与 `Utils/cloud_control_provider.dart`
+保留现有界面消费边界，内容改为唯一的不可变 Community 策略。
+配置在提供者构造时可用，早于任何页面及网络响应；无 JSON 解析、状态替换
+或历史覆盖开关输入。`ServerApi` 和启动调用已移除，没有网络失败回退分支，
+也没有由配置触发 `exit(0)` 的分支。
+
+| 项目 | 社区值或处理 |
+| --- | --- |
+| 应用启用 | 固定启用，上游停用值无法进入配置 |
+| 彩蛋、装扮、标签装扮、回礼预览 | 固定开启现有入口，服务端授权和实际数据仍决定内容可用性 |
+| 帖子/视频下载、图片质量、大图设置 | 固定开启现有能力；保留用户自己的显示、下载和质量偏好 |
+| 无消费者的旧字段 | 移除，未新增假定的功能消费者 |
+| 反馈与联系 | `https://github.com/FlozeIII/Loftify/issues` |
+| 仓库、社区主页与托盘对应入口 | `https://github.com/FlozeIII/Loftify` |
+| 分享文本 | Loftify Community 名称及社区仓库地址 |
+| QQ、Telegram、上游邮箱 | 移除入口及默认地址；不指定未经核实的社区群组或邮箱 |
+| 首次 QQ 邀请 | 移除；仍保留正常游客登录入口 |
+| 彩蛋云端覆盖开关 | 移除；旧 Hive 键原样保留但不读取、不影响策略 |
+| 本地评分 | 保留原有仅本地反馈行为；不宣称评分已提交到外部平台 |
+
+`LoginApi.getConfigs` 是 LOFTER 的 `/v1.1/configs.api`，不是发行方远程启停
+配置。内容、登录、认证、回礼及下载接口不在本票删除范围内。
+更新发现、渠道筛选和升级由 #7–#9 实现；本票未修改共享组件的旧更新器，
+不能把本地配置完成视为社区更新能力已完成。公开发行仍受 #10–#12 阻塞。
+
+## 行为验收
+
+测试入口沿用规格已确认的社区配置、启动和用户入口。
+
+- [Actions 38532482694](https://github.com/FlozeIII/Loftify/actions/runs/38532482694)
+  在源码 `4c67aab` 上实际点击关于页反馈，捕获到上游仓库地址，目标断言失败。
+  首次页面定位失败的尝试不计为行为复现。
+- [Actions 38533138931](https://github.com/FlozeIII/Loftify/actions/runs/38533138931)
+  在源码 `8da445f` 上反馈入口已通过；启动基本数据入口仍发出上游 `control.json`
+  请求，零请求断言实际失败。该阶段日志日期初始化异常也已在测试夹具修正。
+- 启动测试使用隔离 Hive、只在 HTTP 边界记录请求并模拟端点不可达，关闭独立的
+  更新查询并使用默认字体；不会读取真实用户的账号目录。放入的旧配置样式数据
+  是故意构造的停用值，不把它误称为旧实现真实保存的配置缓存。
+- 页面测试实际点击反馈、联系、仓库和社区主页，观察系统 URL 打开边界；
+  托盘测试调用现有菜单处理入口，观察相同边界。图片设置页面验证质量、大图
+  与下载设置分组可见，关于页验证群组邀请入口消失。
+- 最终静态分析、入口回归、完整测试与 Windows 实机验收进行中，后续记录绑定
+  对应源码、Actions 和实际采用的 Windows 包。

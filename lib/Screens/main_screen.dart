@@ -5,7 +5,6 @@ import 'package:awesome_chewie/awesome_chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
-import 'package:loftify/Api/server_api.dart';
 import 'package:loftify/Screens/Login/login_by_captcha_screen.dart';
 import 'package:loftify/Screens/panel_screen.dart';
 import 'package:loftify/Utils/cloud_control_provider.dart';
@@ -139,7 +138,6 @@ class MainScreenState extends BaseWindowState<MainScreen>
     WidgetsBinding.instance.addObserver(this);
     darkModeController = AnimationController(vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      showQQGroupDialog();
       jumpToLogin();
       darkModeWidget = LottieFiles.buildAnimation(
         LottieFiles.sunLight,
@@ -159,7 +157,6 @@ class MainScreenState extends BaseWindowState<MainScreen>
   }
 
   void fetchBasicData() {
-    ServerApi.getCloudControl();
     CustomFont.downloadFont(showToast: false);
     _fetchUserInfo();
     if (ChewieHiveUtil.getBool(HiveUtil.autoCheckUpdateKey)) {
@@ -234,26 +231,6 @@ class MainScreenState extends BaseWindowState<MainScreen>
         );
     chewieProvider.loadingWidgetBuilder = LottieFiles.buildLoadingAnimation;
     chewieProvider.stateWidgetBuilder = LoftifyStateView.fromChewie;
-  }
-
-  showQQGroupDialog() {
-    bool haveShownQQGroupDialog = ChewieHiveUtil.getBool(
-        HiveUtil.haveShownQQGroupDialogKey,
-        defaultValue: false);
-    if (!haveShownQQGroupDialog) {
-      ChewieHiveUtil.put(HiveUtil.haveShownQQGroupDialogKey, true);
-      DialogBuilder.showConfirmDialog(
-        context,
-        title: appLocalizations.feedbackWelcome,
-        message: appLocalizations.feedbackWelcomeMessage,
-        messageTextAlign: TextAlign.center,
-        confirmButtonText: appLocalizations.goToQQ,
-        cancelButtonText: appLocalizations.joinLater,
-        onTapConfirm: () {
-          UriUtil.openExternal(controlProvider.globalControl.qqGroupUrl);
-        },
-      );
-    }
   }
 
   void jumpToLogin() {

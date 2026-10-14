@@ -22,6 +22,7 @@ import '../Screens/Setting/setting_screen.dart';
 import '../Widgets/Shortcuts/keyboard_widget.dart';
 import '../l10n/l10n.dart';
 import 'app_provider.dart';
+import 'cloud_control_provider.dart';
 
 class Utils {
   static int parseToInt(dynamic value) => NumberUtil.parseToInt(value);
@@ -194,7 +195,7 @@ class Utils {
         ),
         MenuItem(
           key: TrayKey.officialWebsite.key,
-          label: appLocalizations.officialWebsiteTray,
+          label: appLocalizations.communityPage,
         ),
         MenuItem(
           key: TrayKey.about.key,
@@ -252,7 +253,7 @@ class Utils {
         MenuItem.separator(),
         MenuItem(
           key: TrayKey.officialWebsite.key,
-          label: appLocalizations.officialWebsiteTray,
+          label: appLocalizations.communityPage,
         ),
         MenuItem(
           key: TrayKey.githubRepository.key,
@@ -340,9 +341,10 @@ class Utils {
       ChewieUtils.displayApp();
       RouteUtil.pushPanelCupertinoRoute(context, const AboutSettingScreen());
     } else if (menuItem.key == TrayKey.officialWebsite.key) {
-      UriUtil.launchUrlUri(context, officialWebsite);
+      UriUtil.launchUrlUri(
+          context, controlProvider.globalControl.officialWebsite);
     } else if (menuItem.key == TrayKey.githubRepository.key) {
-      UriUtil.launchUrlUri(context, repoUrl);
+      UriUtil.launchUrlUri(context, controlProvider.globalControl.repoUrl);
     } else if (menuItem.key == TrayKey.checkUpdates.key) {
       ChewieUtils.getReleases(
         context: context,

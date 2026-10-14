@@ -5,11 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:loftify/Screens/Setting/about_setting_screen.dart';
+import 'package:loftify/Screens/Setting/image_setting_screen.dart';
 import 'package:loftify/Screens/main_screen.dart';
 import 'package:loftify/Utils/app_provider.dart';
 import 'package:loftify/Utils/cloud_control_provider.dart';
 import 'package:loftify/Utils/hive_util.dart';
+import 'package:loftify/Utils/enums.dart';
+import 'package:loftify/Utils/utils.dart';
+import 'package:tray_manager/tray_manager.dart';
 import 'package:loftify/Widgets/loftify_icons.dart';
 import 'package:loftify/l10n/l10n.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -49,6 +54,8 @@ void main() {
     await directory.create(recursive: true);
     Hive.init(directory.path);
     await Hive.openBox(ChewieHiveUtil.settingsBox);
+    await initializeDateFormatting();
+    await ChewieHiveUtil.put(ChewieHiveUtil.fontFamilyKey, '');
     PathProviderPlatform.instance = _TestPaths('${directory.path}/support');
     await ChewieHiveUtil.put(ChewieHiveUtil.inappWebviewKey, false);
     PackageInfo.setMockInitialValues(
@@ -99,8 +106,7 @@ void main() {
     }
   });
 
-  testWidgets('about feedback opens the Community issue tracker',
-      (tester) async {
+  Future<void> mount(WidgetTester tester, Widget screen) async {
     tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -124,22 +130,67 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: Builder(builder: (context) {
             chewieProvider.setRootContext(context);
-            return const AboutSettingScreen(showTitleBar: false);
+            return screen;
           }),
         ),
       ),
     );
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
-    final feedback = find.byWidgetPredicate(
-      (widget) => widget is EntryItem && widget.leading == LoftifyIcons.bug,
-    );
-    expect(feedback, findsOneWidget);
-    await tester.ensureVisible(feedback);
-    await tester.tap(feedback);
-    await tester.pump();
+  }
 
-    expect(launched, ['https://github.com/FlozeIII/Loftify/issues']);
+  for (final entry in [
+    ('feedback', LoftifyIcons.bug, 'https://github.com/FlozeIII/Loftify/issues'),
+    ('contact', LoftifyIcons.support, 'https://github.com/FlozeIII/Loftify/issues'),
+    ('repository', LoftifyIcons.commit, 'https://github.com/FlozeIII/Loftify'),
+    ('community page', LoftifyIcons.language, 'https://github.com/FlozeIII/Loftify'),
+  ]) {
+    testWidgets('about ${entry.$1} opens the Community destination', (tester) async {
+      await mount(tester, const AboutSettingScreen(showTitleBar: false));
+      final action = find.byWidgetPredicate(
+        (widget) => widget is EntryItem && widget.leading == entry.$2,
+      );
+      expect(action, findsOneWidget);
+      await tester.ensureVisible(action);
+      await tester.tap(action);
+      await tester.pump();
+      expect(launched, [entry.$3]);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    });
+  }
+
+  testWidgets('about has no upstream group invitations', (tester) async {
+    await mount(tester, const AboutSettingScreen(showTitleBar: false));
+    final groupEntries = find.byWidgetPredicate(
+      (widget) => widget is EntryItem &&
+          (widget.leading == LoftifyIcons.group || widget.leading == LoftifyIcons.send),
+    );
+    expect(groupEntries, findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  for (final key in [TrayKey.officialWebsite, TrayKey.githubRepository]) {
+    testWidgets('tray ${key.name} opens the Community repository', (tester) async {
+      await mount(tester, const AboutSettingScreen(showTitleBar: false));
+      await Utils.processTrayMenuItemClick(
+        chewieProvider.rootContext, MenuItem(key: key.key, label: 'test'),
+      );
+      await tester.pump();
+      expect(launched, ['https://github.com/FlozeIII/Loftify']);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    });
+  }
+
+  testWidgets('local configuration keeps image settings and downloads available',
+      (tester) async {
+    await mount(tester, const ImageSettingScreen(showTitleBar: false));
+    expect(find.text('Image quality'), findsOneWidget);
+    expect(find.text('Large Image Settings'), findsOneWidget);
+    expect(find.text('Download Settings'), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
