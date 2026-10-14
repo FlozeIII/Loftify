@@ -1136,7 +1136,9 @@ class CustomHtmlWidgetState extends State<CustomHtmlWidget> {
           child: ChewieItemBuilder.buildCachedImage(
             context: context,
             imageUrl: imageUrl,
-            baseUrl: WebUtil.getBaseUrl(widget.url ?? "").toString(),
+            baseUrl: widget.url == null || widget.url!.trim().isEmpty
+                ? null
+                : WebUtil.getBaseUrl(widget.url!).toString(),
             fit: BoxFit.cover,
             width: double.infinity,
             placeholderHeight: 300,
