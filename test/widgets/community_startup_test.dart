@@ -170,18 +170,14 @@ void main() {
       await frames(tester);
       expect(find.byType(LoginByCaptchaScreen), findsNothing);
       expect(find.byType(HomeScreen), findsOneWidget);
-      final search = find.byWidgetPredicate(
-        (w) => w is ToolButton && w.icon == LoftifyIcons.search,
-      );
+      final search = find.widgetWithIcon(ToolButton, LoftifyIcons.search);
       await tester.tap(search.first);
       await frames(tester);
       expect(find.byType(SearchScreen), findsOneWidget);
-      await tester.enterText(find.byType(TextField).first, 'community');
+      await tester.enterText(find.byType(TextField).hitTestable().first, 'community');
       await frames(tester);
       expect(requests.map((r) => r.path), contains('/newsearch/sug.json'));
-      final home = find.byWidgetPredicate(
-        (w) => w is ToolButton && w.icon == LoftifyIcons.home,
-      );
+      final home = find.widgetWithIcon(ToolButton, LoftifyIcons.home);
       await tester.tap(home.first);
       await frames(tester);
       expect(requests.map((r) => r.path), contains('/recommend/exploreRecom.json'));
