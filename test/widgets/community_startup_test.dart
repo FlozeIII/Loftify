@@ -1,10 +1,11 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:awesome_chewie/awesome_chewie.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
@@ -17,6 +18,7 @@ import 'package:loftify/Screens/main_screen.dart';
 import 'package:loftify/Utils/app_provider.dart';
 import 'package:loftify/Utils/enums.dart';
 import 'package:loftify/Utils/hive_util.dart';
+import 'package:loftify/Utils/download_task_manager.dart';
 import 'package:loftify/Utils/request_util.dart';
 import 'package:loftify/Widgets/PostDetail/post_download_action_icon.dart';
 import 'package:loftify/Widgets/loftify_icons.dart';
@@ -25,6 +27,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
+const fixtureImageUrl = 'https://images.example.invalid/fixture.png';
+
 class _Cookies extends Fake implements CookieManager {}
 
 class _Paths extends PathProviderPlatform {
@@ -32,6 +36,17 @@ class _Paths extends PathProviderPlatform {
   final String root;
   @override
   Future<String?> getApplicationSupportPath() async => root;
+  @override
+  Future<String?> getTemporaryPath() async => '$root/cache';
+  @override
+  Future<String?> getApplicationCachePath() async => '$root/cache';
+}
+
+class _NetworkBoundary extends HttpOverrides {
+  _NetworkBoundary(this.requests);
+  final List<Uri> requests;
+  @override
+  HttpClient createHttpClient(SecurityContext? context) => _OfflineClient(requests);
 }
 
 class _OfflineClient implements HttpClient {
@@ -59,6 +74,8 @@ void main() {
     await Hive.openBox(ChewieHiveUtil.settingsBox);
     PathProviderPlatform.instance = _Paths('${root.path}/support');
     await initializeDateFormatting();
+    await ChewieHiveUtil.put(ChewieHiveUtil.savePathKey, '${root.path}/downloads');
+    await DefaultCacheManager().putFile(fixtureImageUrl, pixel, fileExtension: 'png');
     PackageInfo.setMockInitialValues(
       appName: 'Loftify Community',
       packageName: 'io.github.flozeiii.loftify.community',
@@ -68,9 +85,11 @@ void main() {
     for (final name in [
       'window_manager', 'hotkey_manager', 'tray_manager',
       'com.llfbandit.app_links/messages', 'com.llfbandit.app_links/events',
+      'dev.fluttercommunity.plus/connectivity', 'dev.fluttercommunity.plus/connectivity_status',
     ]) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(MethodChannel(name), (call) async {
+        if (call.method == 'check') return ['wifi'];
         if (call.method == 'isAlwaysOnTop' || call.method == 'isMaximized') {
           return false;
         }
@@ -83,9 +102,13 @@ void main() {
         return null;
       });
     }
+    await DownloadTaskManager.instance.initialize();
   });
 
   setUp(() async {
+    final previousHttpOverrides = HttpOverrides.current;
+    HttpOverrides.global = _NetworkBoundary(externalRequests);
+    addTearDown(() { HttpOverrides.global = previousHttpOverrides; });
     requests.clear();
     externalRequests.clear();
     await ChewieHiveUtil.put(ChewieHiveUtil.fontFamilyKey, '');
@@ -122,7 +145,7 @@ void main() {
               'post': {
                 'id': 42, 'blogId': 7, 'type': 1,
                 'title': 'Community readable article',
-                'content': '<p>Community article body</p><img src="data:image/png;base64,${base64Encode(pixel)}">',
+                'content': '<p>Community article body</p><img src="$fixtureImageUrl">',
                 'blogInfo': {'blogId': 7, 'blogName': 'fixture', 'blogNickName': 'Fixture'},
                 'postCount': {'favoriteCount': 0, 'responseCount': 0},
               },
@@ -157,7 +180,6 @@ void main() {
     viewport(tester);
     await ChewieHiveUtil.put(ChewieHiveUtil.firstLoginKey, true);
     await ChewieHiveUtil.delete(HiveUtil.tokenKey);
-    await HttpOverrides.runZoned(() async {
       await tester.pumpWidget(MyApp(home: MainScreen(key: mainScreenKey)));
       await frames(tester);
       expect(find.byType(LoginByCaptchaScreen), findsOneWidget);
@@ -187,13 +209,11 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await frames(tester);
-    }, createHttpClient: (_) => _OfflineClient(externalRequests));
   });
 
   testWidgets('article content request and usable download action survive historical disabled features',
       (tester) async {
     viewport(tester);
-    await HttpOverrides.runZoned(() async {
       await tester.pumpWidget(const MyApp(home: PostDetailScreen(
         isArticle: true,
         meta: {'postId': '2a', 'blogId': '7', 'blogName': 'fixture'},
@@ -204,11 +224,41 @@ void main() {
       final download = find.byType(PostDownloadActionIcon);
       expect(download, findsOneWidget);
       final button = find.ancestor(of: download, matching: find.byType(CircleIconButton));
-      expect(tester.widget<CircleIconButton>(button).onTap, isNotNull);
+      final transfer = Completer<bool>();
+      var observingTask = false;
+      void changed() {
+        if (DownloadTaskManager.instance.tasks.any((task) => task.url == fixtureImageUrl) &&
+            !observingTask) {
+          observingTask = true;
+          final task = DownloadTaskManager.instance.tasks.last;
+          DownloadTaskManager.instance.waitForCompletion(task.id).then(transfer.complete);
+        }
+      }
+      DownloadTaskManager.instance.addListener(changed);
+      addTearDown(() => DownloadTaskManager.instance.removeListener(changed));
+      final before = externalRequests.where((u) => u.toString() == fixtureImageUrl).length;
+      final outcome = await tester.runAsync(
+        () async {
+          await tester.tap(button);
+          return transfer.future.timeout(const Duration(seconds: 15));
+        },
+      );
+      await tester.pump();
+      DownloadTaskManager.instance.removeListener(changed);
+      // The isolated HTTP transport is deliberately offline; the real action
+      // must create a task, attempt the transfer and render the retryable error.
+      expect(outcome, isFalse);
+      expect(externalRequests.where((u) => u.toString() == fixtureImageUrl).length,
+          greaterThan(before));
+      expect(find.byKey(const ValueKey('post-download-failed')), findsOneWidget);
       expect(externalRequests.where((u) => u.path.endsWith('/control.json')), isEmpty);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await frames(tester);
-    }, createHttpClient: (_) => _OfflineClient(externalRequests));
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
+  tearDownAll(() async {
+    DownloadTaskManager.instance.dispose();
+    await DefaultCacheManager().dispose();
   });
 }
