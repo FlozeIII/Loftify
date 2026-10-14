@@ -22,7 +22,6 @@ import 'package:loftify/Utils/hive_util.dart';
 import 'package:loftify/Utils/download_task_manager.dart';
 import 'package:loftify/Utils/request_util.dart';
 import 'package:loftify/Widgets/PostDetail/post_download_action_icon.dart';
-import 'package:loftify/Widgets/PostDetail/post_content_section.dart';
 import 'package:loftify/Widgets/loftify_icons.dart';
 import 'package:loftify/main.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -241,14 +240,6 @@ void main() {
         });
         await tester.pump();
       }
-      if (title.evaluate().isEmpty) {
-        // Temporary, fixture-only diagnosis of the rendered page boundary.
-        debugPrint('[DEBUG-I4] content=${find.byType(PostContentSection).evaluate().length} '
-            'download=${find.byType(PostDownloadActionIcon).evaluate().length} '
-            'loading=${find.byType(LoadingWidget).evaluate().length} '
-            'error=${find.byType(CustomErrorWidget).evaluate().length}');
-        debugPrint('[DEBUG-I4] text=${tester.widgetList<RichText>(find.byType(RichText)).map((w) => w.text.toPlainText()).join(" | ")}');
-      }
       expect(title, findsWidgets);
       final download = find.byType(PostDownloadActionIcon);
       expect(download, findsOneWidget);
@@ -266,13 +257,20 @@ void main() {
       DownloadTaskManager.instance.addListener(changed);
       addTearDown(() => DownloadTaskManager.instance.removeListener(changed));
       final before = externalRequests.where((u) => u.toString() == fixtureImageUrl).length;
-      final outcome = await tester.runAsync(
-        () async {
-          await tester.tap(button);
-          return transfer.future.timeout(const Duration(seconds: 15));
-        },
-      );
-      await tester.pump();
+      await tester.tap(button);
+      // Task listeners and widget callbacks belong to the test's fake async
+      // zone. Drain that zone between real file/HTTP work instead of waiting
+      // for their completion inside runAsync, which cannot pump those callbacks.
+      for (var i = 0; i < 100 && !transfer.isCompleted; i++) {
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 30));
+        });
+        await tester.pump();
+      }
+      expect(transfer.isCompleted, isTrue,
+          reason: 'The download action must reach a terminal task state');
+      final outcome = await transfer.future;
+      await tester.pump(const Duration(milliseconds: 200));
       DownloadTaskManager.instance.removeListener(changed);
       // The isolated HTTP transport is deliberately offline; the real action
       // must create a task, attempt the transfer and render the retryable error.
