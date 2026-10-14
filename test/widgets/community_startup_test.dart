@@ -22,6 +22,7 @@ import 'package:loftify/Utils/hive_util.dart';
 import 'package:loftify/Utils/download_task_manager.dart';
 import 'package:loftify/Utils/request_util.dart';
 import 'package:loftify/Widgets/PostDetail/post_download_action_icon.dart';
+import 'package:loftify/Widgets/PostDetail/post_content_section.dart';
 import 'package:loftify/Widgets/loftify_icons.dart';
 import 'package:loftify/main.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -239,6 +240,14 @@ void main() {
           await Future<void>.delayed(const Duration(milliseconds: 30));
         });
         await tester.pump();
+      }
+      if (title.evaluate().isEmpty) {
+        // Temporary, fixture-only diagnosis of the rendered page boundary.
+        debugPrint('[DEBUG-I4] content=${find.byType(PostContentSection).evaluate().length} '
+            'download=${find.byType(PostDownloadActionIcon).evaluate().length} '
+            'loading=${find.byType(LoadingWidget).evaluate().length} '
+            'error=${find.byType(CustomErrorWidget).evaluate().length}');
+        debugPrint('[DEBUG-I4] text=${tester.widgetList<RichText>(find.byType(RichText)).map((w) => w.text.toPlainText()).join(" | ")}');
       }
       expect(title, findsWidgets);
       final download = find.byType(PostDownloadActionIcon);
