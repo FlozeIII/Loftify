@@ -8,7 +8,6 @@ import 'package:hive/hive.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:loftify/Screens/Setting/about_setting_screen.dart';
 import 'package:loftify/Screens/Setting/image_setting_screen.dart';
-import 'package:loftify/Screens/main_screen.dart';
 import 'package:loftify/Utils/app_provider.dart';
 import 'package:loftify/Utils/cloud_control_provider.dart';
 import 'package:loftify/Utils/hive_util.dart';
@@ -29,19 +28,6 @@ class _TestPaths extends PathProviderPlatform {
   Future<String?> getApplicationSupportPath() async => root;
 }
 
-class _OfflineClient implements HttpClient {
-  _OfflineClient(this.requests);
-  final List<Uri> requests;
-
-  @override
-  Future<HttpClientRequest> openUrl(String method, Uri url) async {
-    requests.add(url);
-    throw const SocketException('Test-only offline configuration endpoint');
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -67,30 +53,9 @@ void main() {
     );
   });
 
-  test('startup makes no configuration request with historical overrides',
-      () async {
-    await ChewieHiveUtil.put(HiveUtil.autoCheckUpdateKey, false);
+  setUp(() async {
     await ChewieHiveUtil.put(HiveUtil.overrideCloudControlKey, true);
-    await ChewieHiveUtil.put('cloudControl', {
-      'enableApp': false,
-      'features': {'showDress': false},
-      'contacts': {'issueUrl': 'https://example.invalid/upstream'},
-    });
-    appProvider.token = '';
-    final requests = <Uri>[];
-    await HttpOverrides.runZoned(() async {
-      MainScreenState().fetchBasicData();
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-    }, createHttpClient: (_) => _OfflineClient(requests));
-
-    expect(requests, isEmpty);
-    expect(controlProvider.globalControl.enableAppNotNull, isTrue);
-    expect(controlProvider.globalControl.showDress, isTrue);
-    expect(controlProvider.globalControl.issueUrl,
-        'https://github.com/FlozeIII/Loftify/issues');
-  });
-
-  setUp(() {
+    await ChewieHiveUtil.put('cloudControl', {'enableApp': false});
     launched.clear();
     for (final name in [
       'plugins.flutter.io/url_launcher',
@@ -140,21 +105,21 @@ void main() {
   }
 
   for (final entry in [
-    ('feedback', LoftifyIcons.bug, 'https://github.com/FlozeIII/Loftify/issues'),
-    ('contact', LoftifyIcons.support, 'https://github.com/FlozeIII/Loftify/issues'),
-    ('repository', LoftifyIcons.commit, 'https://github.com/FlozeIII/Loftify'),
-    ('community page', LoftifyIcons.language, 'https://github.com/FlozeIII/Loftify'),
+    (name: 'feedback', icon: LoftifyIcons.bug, url: 'https://github.com/FlozeIII/Loftify/issues'),
+    (name: 'contact', icon: LoftifyIcons.support, url: 'https://github.com/FlozeIII/Loftify/issues'),
+    (name: 'repository', icon: LoftifyIcons.commit, url: 'https://github.com/FlozeIII/Loftify'),
+    (name: 'community page', icon: LoftifyIcons.language, url: 'https://github.com/FlozeIII/Loftify'),
   ]) {
-    testWidgets('about ${entry.$1} opens the Community destination', (tester) async {
+    testWidgets('about ${entry.name} opens the Community destination', (tester) async {
       await mount(tester, const AboutSettingScreen(showTitleBar: false));
       final action = find.byWidgetPredicate(
-        (widget) => widget is EntryItem && widget.leading == entry.$2,
+        (widget) => widget is EntryItem && widget.leading == entry.icon,
       );
       expect(action, findsOneWidget);
       await tester.ensureVisible(action);
       await tester.tap(action);
       await tester.pump();
-      expect(launched, [entry.$3]);
+      expect(launched, [entry.url]);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     });
